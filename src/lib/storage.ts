@@ -50,9 +50,8 @@ async function putPublicBytes(
 
   if (useBlobStorage()) {
     const { put } = await import("@vercel/blob");
-    // Uint8Array plano: el SDK usa fetch y falla con SharedArrayBuffer
-    const body = new Uint8Array(plain);
-    const blob = await put(pathname, body, {
+    // Buffer copiado (toPlainBuffer): evita SharedArrayBuffer en el fetch del SDK
+    const blob = await put(pathname, plain, {
       access: "public",
       contentType,
       addRandomSuffix: false,

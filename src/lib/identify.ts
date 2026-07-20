@@ -8,7 +8,7 @@ export type SpeciesSuggestion = {
   notes: string;
 };
 
-const PROMPT = `Eres un experto en peces marinos y de agua dulce.
+const PROMPT = `Eres un experto en fauna marina y acuática (peces, tortugas, rayas, mamíferos marinos, invertebrados, etc.).
 Identifica la especie más probable en la foto.
 Responde SOLO con JSON válido (sin markdown) con esta forma exacta:
 {
@@ -18,10 +18,10 @@ Responde SOLO con JSON válido (sin markdown) con esta forma exacta:
   "family": "familia taxonómica",
   "habitat": "hábitat típico en español",
   "confidence": 0.0,
-  "notes": "breve duda o rasgo clave si aplica"
+  "notes": "clase o grupo (pez, reptil, mamífero…) y cualquier duda o rasgo clave"
 }
 Si no estás seguro, elige la mejor hipótesis y baja confidence.
-Si no parece un pez, pon commonName vacío y notes explicando.`;
+Si no parece un animal acuático/marino, pon commonName vacío y notes explicando.`;
 
 const DEFAULT_MODELS = [
   "gemini-3.5-flash",

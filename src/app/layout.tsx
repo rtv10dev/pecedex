@@ -15,7 +15,7 @@ const inter = Inter({
 });
 
 const description =
-  "Tu bitácora personal de peces avistados. Galería tropical, mapa interactivo y modelos 3D.";
+  "Bitácora personal de fauna marina avistada. Galería tropical, mapa interactivo y modelos 3D.";
 
 export const metadata: Metadata = {
   title: {

@@ -14,7 +14,7 @@ export default async function AdminLoginPage() {
     <>
       <Header
         title="Entrar al arrecife"
-        subtitle="Aurora y Rafa · contraseña para añadir peces"
+        subtitle="Aurora y Rafa · contraseña para añadir avistamientos"
       />
       <main className="mx-auto w-full max-w-lg flex-1 px-4 py-8">
         <div className="overflow-hidden rounded-3xl border-2 border-white/80 bg-shell/95 shadow-xl shadow-coral/25">

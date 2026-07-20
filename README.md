@@ -1,6 +1,6 @@
 # Pecedex
 
-Tu bitácora personal de peces avistados — una Pokédex marina tropical, mobile-first.
+Tu bitácora personal de fauna marina avistada — una Pokédex marina tropical, mobile-first.
 
 ## Stack
 

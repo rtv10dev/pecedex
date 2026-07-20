@@ -12,7 +12,7 @@ export default async function AdminAddPage() {
 
   return (
     <>
-      <Header title="Añadir pez" subtitle="Nuevo avistamiento de Aurora y Rafa" />
+      <Header title="Añadir avistamiento" subtitle="Nuevo registro de Aurora y Rafa" />
       <main className="mx-auto w-full max-w-lg flex-1 px-4 py-6">
         <div className="mb-4 flex items-center justify-between gap-2">
           <Link

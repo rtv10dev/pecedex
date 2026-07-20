@@ -49,7 +49,7 @@ export async function identifySightingAction(
 
   const photo = formData.get("photo");
   if (!(photo instanceof File) || photo.size === 0) {
-    return { error: "Elige una foto del pez." };
+    return { error: "Elige una foto del avistamiento." };
   }
 
   try {

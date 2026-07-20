@@ -11,7 +11,7 @@ import { REEF_TITLE, type SortBy } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Galería",
-  description: "Colección de peces avistados, ordenados por registro o ubicación.",
+  description: "Colección de fauna marina avistada, ordenada por registro o ubicación.",
 };
 
 interface GalleryPageProps {
@@ -68,7 +68,7 @@ function EmptyGallery() {
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-coral/30 via-clownfish/30 to-mango/30">
           <FishOff className="h-8 w-8 text-coral" />
         </div>
-        <h2 className="text-lg font-bold text-ink">Aún no habéis registrado ningún pez</h2>
+        <h2 className="text-lg font-bold text-ink">Aún no habéis registrado ningún avistamiento</h2>
         <p className="mt-2 text-sm text-slate">
           Cuando registréis el primer avistamiento, aparecerá aquí con su foto y
           ubicación.

@@ -243,7 +243,7 @@ export function AddSightingForm() {
   function handleIdentify() {
     const file = fileInputRef.current?.files?.[0];
     if (!file) {
-      setIdentifyState({ error: "Elige una foto del pez." });
+      setIdentifyState({ error: "Elige una foto del avistamiento." });
       return;
     }
 
@@ -282,7 +282,7 @@ export function AddSightingForm() {
               <div>
                 <h2 className="font-bold text-ink">Foto del avistamiento</h2>
                 <p className="text-sm text-slate">
-                  Sube la foto y pulsa identificar para rellenar los datos
+                  Peces, tortugas, rayas… identifica por foto y rellena los datos
                 </p>
               </div>
             </div>

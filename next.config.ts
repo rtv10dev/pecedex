@@ -37,6 +37,9 @@ const nextConfig: NextConfig = {
       {
         pathname: "/models/**",
       },
+      {
+        pathname: "/api/media",
+      },
     ],
   },
   experimental: {

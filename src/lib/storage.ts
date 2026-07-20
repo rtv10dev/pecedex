@@ -14,8 +14,50 @@ function useBlobStorage() {
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
 }
 
+/** Tu store es privado → "private". Si creas uno público, pon BLOB_ACCESS=public. */
+function blobAccessMode(): "public" | "private" {
+  const mode = process.env.BLOB_ACCESS?.trim().toLowerCase();
+  if (mode === "public") return "public";
+  return "private";
+}
+
 function isBlobUrl(url: string) {
   return /^https?:\/\//i.test(url) && url.includes("blob.vercel-storage.com");
+}
+
+function isMediaProxyUrl(url: string) {
+  return url.startsWith("/api/media");
+}
+
+/** Pathname dentro del Blob store a partir de URL pública de Pecedex. */
+export function blobPathnameFromPublicUrl(publicUrl: string): string | null {
+  if (isMediaProxyUrl(publicUrl)) {
+    try {
+      const pathParam = new URL(publicUrl, "http://local.invalid").searchParams.get(
+        "path",
+      );
+      if (!pathParam || pathParam.includes("..") || pathParam.startsWith("/")) {
+        return null;
+      }
+      return pathParam;
+    } catch {
+      return null;
+    }
+  }
+  if (isBlobUrl(publicUrl)) {
+    try {
+      return decodeURIComponent(
+        new URL(publicUrl).pathname.replace(/^\/+/, ""),
+      );
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+function toAppMediaUrl(pathname: string): string {
+  return `/api/media?path=${encodeURIComponent(pathname)}`;
 }
 
 /** Copia a un ArrayBuffer “normal” (evita SharedArrayBuffer en fetch de Blob/undici). */
@@ -35,10 +77,12 @@ async function fileToPlainBuffer(file: File): Promise<Buffer> {
   return toPlainBuffer(await file.arrayBuffer());
 }
 
-/** URLs que gestiona Pecedex (local /uploads o Vercel Blob). */
+/** URLs que gestiona Pecedex (local /uploads, proxy /api/media o Vercel Blob). */
 export function isManagedUploadUrl(url: string | null | undefined): boolean {
   if (!url) return false;
-  return url.startsWith("/uploads/") || isBlobUrl(url);
+  return (
+    url.startsWith("/uploads/") || isMediaProxyUrl(url) || isBlobUrl(url)
+  );
 }
 
 async function putPublicBytes(
@@ -50,13 +94,14 @@ async function putPublicBytes(
 
   if (useBlobStorage()) {
     const { put } = await import("@vercel/blob");
-    // Buffer copiado (toPlainBuffer): evita SharedArrayBuffer en el fetch del SDK
+    const access = blobAccessMode();
     const blob = await put(pathname, plain, {
-      access: "public",
+      access,
       contentType,
       addRandomSuffix: false,
     });
-    return blob.url;
+    // Store privado: servir vía /api/media. Público: URL directa de Blob.
+    return access === "private" ? toAppMediaUrl(blob.pathname) : blob.url;
   }
 
   // En Vercel el filesystem es de solo lectura: hace falta Blob.
@@ -73,6 +118,16 @@ async function putPublicBytes(
 }
 
 async function readManagedBytes(publicUrl: string): Promise<Buffer> {
+  const blobPath = blobPathnameFromPublicUrl(publicUrl);
+  if (blobPath && useBlobStorage()) {
+    const { get } = await import("@vercel/blob");
+    const result = await get(blobPath, { access: blobAccessMode() });
+    if (!result?.stream) {
+      throw new Error("No se pudo leer el archivo remoto.");
+    }
+    return toPlainBuffer(await new Response(result.stream).arrayBuffer());
+  }
+
   if (isBlobUrl(publicUrl)) {
     const res = await fetch(publicUrl);
     if (!res.ok) {
@@ -261,6 +316,13 @@ export async function deleteUploadByPublicUrl(
   publicUrl: string | null | undefined,
 ): Promise<void> {
   if (!publicUrl || !isManagedUploadUrl(publicUrl)) return;
+
+  const blobPath = blobPathnameFromPublicUrl(publicUrl);
+  if (blobPath && useBlobStorage()) {
+    const { del } = await import("@vercel/blob");
+    await del(blobPath).catch(() => {});
+    return;
+  }
 
   if (isBlobUrl(publicUrl)) {
     const { del } = await import("@vercel/blob");

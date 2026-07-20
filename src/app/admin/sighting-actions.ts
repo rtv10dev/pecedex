@@ -12,6 +12,7 @@ import {
 import { tryAutoReuseSpeciesModel } from "@/lib/model3d/attach";
 import {
   deleteUploadByPublicUrl,
+  isManagedUploadUrl,
   saveSightingPhoto,
   saveTempIdentifyPhoto,
 } from "@/lib/storage";
@@ -254,7 +255,7 @@ export async function deleteSightingAction(
 
   const modelUrl = sighting.model3dUrl;
   const modelStillUsed =
-    modelUrl && modelUrl.startsWith("/uploads/")
+    modelUrl && isManagedUploadUrl(modelUrl)
       ? (await prisma.sighting.count({
           where: {
             model3dUrl: modelUrl,
@@ -281,16 +282,13 @@ export async function deleteSightingAction(
       .catch(() => {});
   }
 
-  // Foto: borrar carpeta /uploads/{id}/ (full + thumb suelen compartir carpeta)
+  // Foto: en local borra la carpeta; en Blob hay que borrar full y thumb por URL
   await deleteUploadByPublicUrl(sighting.photoUrl);
-  if (
-    sighting.photoThumbUrl &&
-    pathDir(sighting.photoThumbUrl) !== pathDir(sighting.photoUrl)
-  ) {
+  if (sighting.photoThumbUrl && sighting.photoThumbUrl !== sighting.photoUrl) {
     await deleteUploadByPublicUrl(sighting.photoThumbUrl);
   }
 
-  if (modelUrl?.startsWith("/uploads/") && !modelStillUsed) {
+  if (modelUrl && isManagedUploadUrl(modelUrl) && !modelStillUsed) {
     await deleteUploadByPublicUrl(modelUrl);
   }
 
@@ -299,9 +297,4 @@ export async function deleteSightingAction(
   revalidatePath(`/pez/${sightingId}`);
 
   redirect("/");
-}
-
-function pathDir(publicUrl: string): string {
-  const idx = publicUrl.lastIndexOf("/");
-  return idx >= 0 ? publicUrl.slice(0, idx) : publicUrl;
 }

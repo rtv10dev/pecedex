@@ -10,6 +10,7 @@ import {
 import {
   copyPublicModelToUploads,
   copyUploadModelToUploads,
+  isManagedUploadUrl,
   saveModel3dBytes,
   saveModel3dFile,
 } from "@/lib/storage";
@@ -175,11 +176,12 @@ export async function attachCandidateModel(
 
   try {
     if (candidate.source === "species_reuse" && candidate.reuseUrl) {
-      const model3dUrl = candidate.reuseUrl.startsWith("/uploads/models/")
-        ? await copyUploadModelToUploads(candidate.reuseUrl)
-        : candidate.reuseUrl.startsWith("/models/")
-          ? await copyPublicModelToUploads(candidate.reuseUrl)
-          : candidate.reuseUrl;
+      const reuseUrl = candidate.reuseUrl;
+      const model3dUrl = reuseUrl.startsWith("/models/")
+        ? await copyPublicModelToUploads(reuseUrl)
+        : isManagedUploadUrl(reuseUrl)
+          ? await copyUploadModelToUploads(reuseUrl)
+          : reuseUrl;
       await markReady(sightingId, model3dUrl, "species_reuse");
       return {
         model3dUrl,

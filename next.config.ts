@@ -9,11 +9,25 @@ const nextConfig: NextConfig = {
     "127.0.0.1",
     ...(lanOrigin ? [lanOrigin] : []),
   ],
+  serverExternalPackages: [
+    "@prisma/adapter-better-sqlite3",
+    "@prisma/adapter-pg",
+    "better-sqlite3",
+    "pg",
+  ],
   images: {
     remotePatterns: [
       {
         protocol: "https",
         hostname: "images.unsplash.com",
+      },
+      {
+        protocol: "https",
+        hostname: "*.public.blob.vercel-storage.com",
+      },
+      {
+        protocol: "https",
+        hostname: "*.blob.vercel-storage.com",
       },
     ],
     localPatterns: [

@@ -86,6 +86,9 @@ export async function deleteMemoryAction(
   try {
     await prisma.memory.delete({ where: { id: memoryId } });
     await deleteUploadByPublicUrl(memory.photoUrl);
+    if (memory.photoThumbUrl && memory.photoThumbUrl !== memory.photoUrl) {
+      await deleteUploadByPublicUrl(memory.photoThumbUrl);
+    }
   } catch (error) {
     return {
       error:

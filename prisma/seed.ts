@@ -1,16 +1,33 @@
 import "dotenv/config";
+import { createRequire } from "node:module";
 import path from "node:path";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaClient } from "../src/generated/prisma/client";
 
-const databaseUrl = process.env.DATABASE_URL ?? "file:./dev.db";
-const relative = databaseUrl.replace(/^file:/, "");
-const dbPath = path.isAbsolute(relative)
-  ? relative
-  : path.join(process.cwd(), relative);
+const require = createRequire(import.meta.url);
 
-const adapter = new PrismaBetterSqlite3({ url: dbPath });
-const prisma = new PrismaClient({ adapter });
+const databaseUrl = process.env.DATABASE_URL ?? "file:./dev.db";
+
+function createSeedClient() {
+  if (/^postgres(ql)?:/i.test(databaseUrl)) {
+    const { PrismaPg } = require("@prisma/adapter-pg") as typeof import("@prisma/adapter-pg");
+    const { Pool } = require("pg") as typeof import("pg");
+    const pool = new Pool({ connectionString: databaseUrl });
+    return new PrismaClient({ adapter: new PrismaPg(pool) });
+  }
+
+  const { PrismaBetterSqlite3 } = require(
+    "@prisma/adapter-better-sqlite3",
+  ) as typeof import("@prisma/adapter-better-sqlite3");
+  const relative = databaseUrl.replace(/^file:/, "");
+  const dbPath = path.isAbsolute(relative)
+    ? relative
+    : path.join(process.cwd(), relative);
+  return new PrismaClient({
+    adapter: new PrismaBetterSqlite3({ url: dbPath }),
+  });
+}
+
+const prisma = createSeedClient();
 
 type SeedFish = {
   scientificName: string;

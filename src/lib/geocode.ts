@@ -82,20 +82,20 @@ export async function searchPlaces(
     }>;
   };
 
-  return (data.places ?? [])
-    .map((place) => {
-      const lat = place.location?.latitude;
-      const lng = place.location?.longitude;
-      if (typeof lat !== "number" || typeof lng !== "number") return null;
-      return {
-        label: formatGooglePlaceLabel(place),
-        lat,
-        lng,
-        source: "google" as const,
-        placeId: place.id,
-      };
-    })
-    .filter((item): item is GeocodeResult => item !== null);
+  const results: GeocodeResult[] = [];
+  for (const place of data.places ?? []) {
+    const lat = place.location?.latitude;
+    const lng = place.location?.longitude;
+    if (typeof lat !== "number" || typeof lng !== "number") continue;
+    results.push({
+      label: formatGooglePlaceLabel(place),
+      lat,
+      lng,
+      source: "google",
+      placeId: place.id,
+    });
+  }
+  return results;
 }
 
 /** Reverse geocode: Google primero; Nominatim si falla. */

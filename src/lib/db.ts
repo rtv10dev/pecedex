@@ -1,8 +1,8 @@
-import { createRequire } from "node:module";
 import path from "node:path";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { Pool } from "pg";
 import { PrismaClient } from "@/generated/prisma/client";
-
-const require = createRequire(import.meta.url);
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -15,15 +15,14 @@ function isPostgresUrl(url: string) {
 function resolveSqlitePath(url: string) {
   const relative = url.replace(/^file:/, "");
   if (path.isAbsolute(relative)) return relative;
-  return path.join(process.cwd(), relative);
+  // turbopackIgnore: only used for local SQLite path resolution
+  return path.join(/*turbopackIgnore: true*/ process.cwd(), relative);
 }
 
 function createPrismaClient() {
   const databaseUrl = process.env.DATABASE_URL ?? "file:./dev.db";
 
   if (isPostgresUrl(databaseUrl)) {
-    const { PrismaPg } = require("@prisma/adapter-pg") as typeof import("@prisma/adapter-pg");
-    const { Pool } = require("pg") as typeof import("pg");
     const pool = new Pool({ connectionString: databaseUrl });
     const adapter = new PrismaPg(pool);
 
@@ -34,9 +33,6 @@ function createPrismaClient() {
     });
   }
 
-  const { PrismaBetterSqlite3 } = require(
-    "@prisma/adapter-better-sqlite3",
-  ) as typeof import("@prisma/adapter-better-sqlite3");
   const adapter = new PrismaBetterSqlite3({
     url: resolveSqlitePath(databaseUrl),
   });

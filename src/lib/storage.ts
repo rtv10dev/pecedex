@@ -60,6 +60,15 @@ function toAppMediaUrl(pathname: string): string {
   return `/api/media?path=${encodeURIComponent(pathname)}`;
 }
 
+/** URL pública de la app para un pathname ya subido a Blob. */
+export function mediaUrlForBlobPathname(pathname: string): string {
+  if (blobAccessMode() === "public" && process.env.BLOB_READ_WRITE_TOKEN) {
+    // En store público podrías devolver la URL directa; el proxy también sirve.
+    return toAppMediaUrl(pathname);
+  }
+  return toAppMediaUrl(pathname);
+}
+
 /** Copia a un ArrayBuffer “normal” (evita SharedArrayBuffer en fetch de Blob/undici). */
 function toPlainBuffer(input: ArrayBuffer | Buffer | Uint8Array): Buffer {
   const view =

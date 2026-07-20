@@ -1,15 +1,15 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Box, Loader2, Search, Upload } from "lucide-react";
+import { Box, Loader2, Search } from "lucide-react";
 import {
   attachCandidateAction,
   searchFreeModelsAction,
-  uploadModel3dAction,
   type Model3dActionState,
   type SearchModelsState,
 } from "@/app/admin/model3d-actions";
+import { GlbUploadButton } from "@/components/admin/GlbUploadButton";
 import { ModelCandidatePicker } from "@/components/admin/ModelCandidatePicker";
 
 interface AddSightingModelStepProps {
@@ -29,8 +29,8 @@ export function AddSightingModelStep({
   modelAlreadyReused,
 }: AddSightingModelStepProps) {
   const router = useRouter();
-  const fileRef = useRef<HTMLInputElement>(null);
   const detailHref = `/pez/${sightingId}?from=galeria`;
+  const [uploadState, setUploadState] = useState<Model3dActionState>({});
 
   const [searchState, searchAction, searchPending] = useActionState(
     searchFreeModelsAction,
@@ -40,12 +40,8 @@ export function AddSightingModelStep({
     attachCandidateAction,
     actionInitial,
   );
-  const [uploadState, uploadAction, uploadPending] = useActionState(
-    uploadModel3dAction,
-    actionInitial,
-  );
 
-  const pending = searchPending || attachPending || uploadPending;
+  const pending = searchPending || attachPending;
   const candidates = searchState.candidates ?? [];
 
   useEffect(() => {
@@ -97,34 +93,11 @@ export function AddSightingModelStep({
             </button>
           </form>
 
-          <form action={uploadAction}>
-            <input type="hidden" name="sightingId" value={sightingId} />
-            <input
-              ref={fileRef}
-              type="file"
-              name="model"
-              accept=".glb,model/gltf-binary"
-              className="hidden"
-              onChange={(event) => {
-                if (event.currentTarget.files?.length) {
-                  event.currentTarget.form?.requestSubmit();
-                }
-              }}
-            />
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() => fileRef.current?.click()}
-              className="inline-flex items-center gap-1.5 rounded-full bg-parrot/15 px-3 py-1.5 text-xs font-bold text-deep-teal disabled:opacity-60"
-            >
-              {uploadPending ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Upload className="h-3.5 w-3.5" />
-              )}
-              Subir .glb
-            </button>
-          </form>
+          <GlbUploadButton
+            sightingId={sightingId}
+            disabled={pending}
+            onResult={setUploadState}
+          />
 
           <button
             type="button"

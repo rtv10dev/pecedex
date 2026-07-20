@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAdminSession } from "@/lib/auth/session";
 import {
+  attachBlobPathnameModel,
   attachCandidateModel,
   attachCuratedModel,
   attachUploadedModel,
@@ -209,6 +210,39 @@ export async function uploadModel3dAction(
         error instanceof Error
           ? error.message
           : "No se pudo subir el modelo.",
+    };
+  }
+}
+
+/** Confirma un .glb ya subido a Blob desde el navegador (sin pasar el archivo por la Server Action). */
+export async function confirmBlobModelAction(
+  sightingId: string,
+  pathname: string,
+  label?: string,
+): Promise<Model3dActionState> {
+  await requireAdminSession();
+
+  if (!sightingId) {
+    return { error: "Falta el avistamiento." };
+  }
+  if (!pathname) {
+    return { error: "Falta la ruta del modelo." };
+  }
+
+  try {
+    const result = await attachBlobPathnameModel(
+      sightingId,
+      pathname,
+      label ?? "model.glb",
+    );
+    revalidateSighting(sightingId);
+    return { success: `Modelo subido: ${result.label}` };
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "No se pudo adjuntar el modelo.",
     };
   }
 }

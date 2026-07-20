@@ -1,16 +1,16 @@
 "use client";
 
-import { useActionState, useRef } from "react";
-import { Box, Loader2, Search, Trash2, Upload } from "lucide-react";
+import { useActionState, useState } from "react";
+import { Box, Loader2, Search, Trash2 } from "lucide-react";
 import {
   attachCandidateAction,
   attachCuratedModelAction,
   clearModel3dAction,
   searchFreeModelsAction,
-  uploadModel3dAction,
   type Model3dActionState,
   type SearchModelsState,
 } from "@/app/admin/model3d-actions";
+import { GlbUploadButton } from "@/components/admin/GlbUploadButton";
 import { ModelCandidatePicker } from "@/components/admin/ModelCandidatePicker";
 
 interface Model3dAdminPanelProps {
@@ -48,7 +48,7 @@ export function Model3dAdminPanel({
   scientificName,
   commonName,
 }: Model3dAdminPanelProps) {
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploadState, setUploadState] = useState<Model3dActionState>({});
   const [searchState, searchAction, searchPending] = useActionState(
     searchFreeModelsAction,
     initialSearch,
@@ -61,21 +61,13 @@ export function Model3dAdminPanel({
     attachCuratedModelAction,
     initialAction,
   );
-  const [uploadState, uploadAction, uploadPending] = useActionState(
-    uploadModel3dAction,
-    initialAction,
-  );
   const [clearState, clearAction, clearPending] = useActionState(
     clearModel3dAction,
     initialAction,
   );
 
   const pending =
-    searchPending ||
-    attachPending ||
-    curatedPending ||
-    uploadPending ||
-    clearPending;
+    searchPending || attachPending || curatedPending || clearPending;
 
   const message =
     attachState.success ||
@@ -151,34 +143,11 @@ export function Model3dAdminPanel({
             </form>
           ) : null}
 
-          <form action={uploadAction} className="inline-flex items-center gap-2">
-            <input type="hidden" name="sightingId" value={sightingId} />
-            <input
-              ref={fileRef}
-              type="file"
-              name="model"
-              accept=".glb,model/gltf-binary"
-              className="hidden"
-              onChange={(event) => {
-                if (event.currentTarget.files?.length) {
-                  event.currentTarget.form?.requestSubmit();
-                }
-              }}
-            />
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() => fileRef.current?.click()}
-              className="inline-flex items-center gap-1.5 rounded-full bg-parrot/15 px-3 py-1.5 text-xs font-bold text-deep-teal disabled:opacity-60"
-            >
-              {uploadPending ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Upload className="h-3.5 w-3.5" />
-              )}
-              Subir .glb
-            </button>
-          </form>
+          <GlbUploadButton
+            sightingId={sightingId}
+            disabled={pending}
+            onResult={setUploadState}
+          />
 
           {model3dStatus === "READY" ? (
             <form action={clearAction}>

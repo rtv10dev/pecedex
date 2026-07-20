@@ -11,6 +11,7 @@ import {
   copyPublicModelToUploads,
   copyUploadModelToUploads,
   isManagedUploadUrl,
+  mediaUrlForBlobPathname,
   saveModel3dBytes,
   saveModel3dFile,
 } from "@/lib/storage";
@@ -152,6 +153,70 @@ export async function attachUploadedModel(
       model3dUrl,
       model3dSource: "upload",
       label: file.name,
+    };
+  } catch (error) {
+    await markFailed(sightingId);
+    throw error;
+  }
+}
+
+/** Adjunta un .glb ya subido a Blob (subida directa desde el cliente). */
+export async function attachBlobPathnameModel(
+  sightingId: string,
+  pathname: string,
+  label = "model.glb",
+): Promise<AttachModelResult> {
+  if (
+    !pathname.startsWith("uploads/models/") ||
+    !pathname.endsWith("/model.glb") ||
+    pathname.includes("..")
+  ) {
+    throw new Error("Ruta de modelo no válida.");
+  }
+
+  await prisma.sighting.update({
+    where: { id: sightingId },
+    data: { model3dStatus: "PROCESSING" },
+  });
+
+  try {
+    const { get } = await import("@vercel/blob");
+    const access =
+      process.env.BLOB_ACCESS?.trim().toLowerCase() === "public"
+        ? "public"
+        : "private";
+    const result = await get(pathname, { access });
+    if (!result?.stream) {
+      throw new Error("No se encontró el modelo subido.");
+    }
+
+    const reader = result.stream.getReader();
+    const first = await reader.read();
+    await reader.cancel().catch(() => {});
+    const chunk = first.value;
+    if (!chunk || chunk.byteLength < 12) {
+      const { del } = await import("@vercel/blob");
+      await del(pathname).catch(() => {});
+      throw new Error("El archivo no parece un GLB válido.");
+    }
+    const magic = String.fromCharCode(
+      chunk[0]!,
+      chunk[1]!,
+      chunk[2]!,
+      chunk[3]!,
+    );
+    if (magic !== "glTF") {
+      const { del } = await import("@vercel/blob");
+      await del(pathname).catch(() => {});
+      throw new Error("El archivo no parece un GLB válido.");
+    }
+
+    const model3dUrl = mediaUrlForBlobPathname(pathname);
+    await markReady(sightingId, model3dUrl, "upload");
+    return {
+      model3dUrl,
+      model3dSource: "upload",
+      label,
     };
   } catch (error) {
     await markFailed(sightingId);

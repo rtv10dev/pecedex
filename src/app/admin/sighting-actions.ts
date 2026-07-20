@@ -60,7 +60,12 @@ export async function identifySightingAction(
       suggestion,
       photoPreviewUrl: temp.publicUrl,
     };
-  } catch {
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "";
+    if (message.includes("BLOB_READ_WRITE_TOKEN")) {
+      return { error: message };
+    }
     return {
       error: "Ha ocurrido un error. Vuelve a intentarlo de nuevo.",
     };

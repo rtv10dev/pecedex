@@ -39,6 +39,13 @@ async function putPublicBytes(
     return blob.url;
   }
 
+  // En Vercel el filesystem es de solo lectura: hace falta Blob.
+  if (process.env.VERCEL) {
+    throw new Error(
+      "Falta BLOB_READ_WRITE_TOKEN. En Vercel → Storage → Blob, conecta el store o crea un token de lectura/escritura.",
+    );
+  }
+
   const abs = path.join(process.cwd(), "public", pathname);
   await mkdir(path.dirname(abs), { recursive: true });
   await writeFile(abs, bytes);
@@ -143,13 +150,34 @@ export async function saveTempIdentifyPhoto(file: File): Promise<{
 
   const fileName = "identify.jpg";
   const pathname = `uploads/tmp/${id}/${fileName}`;
-  const publicUrl = await putPublicBytes(pathname, normalized, "image/jpeg");
+
+  // Con Blob: subir preview. Sin Blob en Vercel: data URL (Gemini usa `bytes` en memoria).
+  if (useBlobStorage()) {
+    const publicUrl = await putPublicBytes(pathname, normalized, "image/jpeg");
+    return {
+      absPath: null,
+      publicUrl,
+      mimeType: "image/jpeg",
+      bytes: normalized,
+    };
+  }
+
+  if (process.env.VERCEL) {
+    return {
+      absPath: null,
+      publicUrl: `data:image/jpeg;base64,${normalized.toString("base64")}`,
+      mimeType: "image/jpeg",
+      bytes: normalized,
+    };
+  }
+
+  const absPath = path.join(process.cwd(), "public", pathname);
+  await mkdir(path.dirname(absPath), { recursive: true });
+  await writeFile(absPath, normalized);
 
   return {
-    absPath: useBlobStorage()
-      ? null
-      : path.join(process.cwd(), "public", pathname),
-    publicUrl,
+    absPath,
+    publicUrl: `/${pathname}`,
     mimeType: "image/jpeg",
     bytes: normalized,
   };

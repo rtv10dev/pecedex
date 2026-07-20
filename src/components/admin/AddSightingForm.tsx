@@ -28,6 +28,7 @@ import {
 import { LocationMapPickerLazy } from "@/components/admin/LocationMapPickerLazy";
 import { AddSightingModelStep } from "@/components/admin/AddSightingModelStep";
 import type { GeocodeResult } from "@/lib/geocode";
+import { normalizePhotoForUpload } from "@/lib/client-photo";
 import { cn } from "@/lib/utils";
 
 const createInitial: CreateSightingState = {};
@@ -133,7 +134,7 @@ export function AddSightingForm() {
     );
   }
 
-  function onPhotoChange(file: File | null) {
+  async function onPhotoChange(file: File | null) {
     if (previewUrl?.startsWith("blob:")) {
       URL.revokeObjectURL(previewUrl);
     }
@@ -142,8 +143,28 @@ export function AddSightingForm() {
       setPreviewUrl(null);
       return;
     }
-    setHasPhoto(true);
-    setPreviewUrl(URL.createObjectURL(file));
+
+    try {
+      // Normaliza al elegir (HEIC → JPEG, reduce tamaño para Vercel)
+      const normalized = await normalizePhotoForUpload(file, {
+        maxEdge: 1600,
+        quality: 0.82,
+      });
+      const transfer = new DataTransfer();
+      transfer.items.add(normalized);
+      if (fileInputRef.current) {
+        fileInputRef.current.files = transfer.files;
+      }
+      setHasPhoto(true);
+      setPreviewUrl(URL.createObjectURL(normalized));
+      setIdentifyState({});
+    } catch {
+      setHasPhoto(false);
+      setPreviewUrl(null);
+      setIdentifyState({
+        error: "No se pudo leer esa foto. Prueba con otra (JPEG/PNG).",
+      });
+    }
   }
 
   function selectLocation(place: GeocodeResult) {
@@ -226,12 +247,25 @@ export function AddSightingForm() {
       return;
     }
 
-    const formData = new FormData();
-    formData.set("photo", file);
-
     startIdentify(async () => {
-      const result = await identifySightingAction({}, formData);
-      setIdentifyState(result);
+      try {
+        // JPEG comprimido: evita HEIC de iPhone y el límite ~4.5 MB de Vercel
+        const normalized = await normalizePhotoForUpload(file, {
+          maxEdge: 1280,
+          quality: 0.8,
+        });
+        const formData = new FormData();
+        formData.set("photo", normalized);
+        const result = await identifySightingAction({}, formData);
+        setIdentifyState(result);
+      } catch (error) {
+        setIdentifyState({
+          error:
+            error instanceof Error
+              ? error.message
+              : "No se pudo preparar la foto. Prueba con otra imagen.",
+        });
+      }
     });
   }
 
@@ -283,7 +317,7 @@ export function AddSightingForm() {
                 className="sr-only"
                 required
                 onChange={(event) => {
-                  onPhotoChange(event.target.files?.[0] ?? null);
+                  void onPhotoChange(event.target.files?.[0] ?? null);
                 }}
               />
             </label>

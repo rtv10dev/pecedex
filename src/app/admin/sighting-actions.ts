@@ -58,12 +58,19 @@ export async function identifySightingAction(
 
     return {
       suggestion,
-      photoPreviewUrl: temp.publicUrl,
+      // No devolvemos data URL gigante; el cliente ya tiene la preview local
+      photoPreviewUrl: temp.publicUrl.startsWith("data:")
+        ? undefined
+        : temp.publicUrl,
     };
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "";
-    if (message.includes("BLOB_READ_WRITE_TOKEN")) {
+    console.error("[identifySightingAction]", error);
+    const message = error instanceof Error ? error.message : "";
+    if (
+      message.includes("BLOB_READ_WRITE_TOKEN") ||
+      message.includes("GEMINI_API_KEY") ||
+      message.includes("Gemini")
+    ) {
       return { error: message };
     }
     return {

@@ -66,11 +66,14 @@ async function callGemini(
   imageBytes: Buffer,
   mimeType: string,
 ): Promise<{ ok: true; text: string } | { ok: false; status: number; detail: string }> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
   const response = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-goog-api-key": apiKey,
+    },
     body: JSON.stringify({
       contents: [
         {
@@ -78,7 +81,9 @@ async function callGemini(
             { text: PROMPT },
             {
               inline_data: {
-                mime_type: mimeType,
+                mime_type: mimeType.startsWith("image/")
+                  ? mimeType
+                  : "image/jpeg",
                 data: imageBytes.toString("base64"),
               },
             },
@@ -94,14 +99,22 @@ async function callGemini(
 
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
+    console.error("[identify] gemini error", model, response.status, detail.slice(0, 400));
     return { ok: false, status: response.status, detail };
   }
 
   const payload = (await response.json()) as {
     candidates?: Array<{
       content?: { parts?: Array<{ text?: string }> };
+      finishReason?: string;
     }>;
+    promptFeedback?: { blockReason?: string };
   };
+
+  if (payload.promptFeedback?.blockReason) {
+    console.error("[identify] blocked", payload.promptFeedback.blockReason);
+    return { ok: false, status: 422, detail: "blocked" };
+  }
 
   const text = payload.candidates?.[0]?.content?.parts
     ?.map((part) => part.text ?? "")
@@ -109,6 +122,11 @@ async function callGemini(
     .trim();
 
   if (!text) {
+    console.error(
+      "[identify] empty response",
+      model,
+      payload.candidates?.[0]?.finishReason,
+    );
     return {
       ok: false,
       status: 502,
@@ -125,23 +143,26 @@ export async function identifySpeciesFromImage(
 ): Promise<SpeciesSuggestion> {
   const apiKey = process.env.GEMINI_API_KEY?.trim();
   if (!apiKey) {
-    throw new Error(HUMAN_IDENTIFY_ERROR);
+    throw new Error(
+      "Falta GEMINI_API_KEY en Vercel (Settings → Environment Variables).",
+    );
   }
 
-  let lastError = HUMAN_IDENTIFY_ERROR;
+  let lastStatus = 0;
 
   for (const model of modelsToTry()) {
     const result = await callGemini(apiKey, model, imageBytes, mimeType);
     if (result.ok) {
       try {
         return parseSuggestion(result.text);
-      } catch {
-        lastError = HUMAN_IDENTIFY_ERROR;
+      } catch (error) {
+        console.error("[identify] parse failed", error);
+        lastStatus = 502;
         continue;
       }
     }
 
-    lastError = HUMAN_IDENTIFY_ERROR;
+    lastStatus = result.status;
 
     // 404/400 de modelo inexistente → probar siguiente
     if (result.status === 404 || result.status === 400) {
@@ -153,9 +174,22 @@ export async function identifySpeciesFromImage(
     }
     // Otros errores (auth, etc.) no se recuperan cambiando de modelo
     if (result.status === 401 || result.status === 403) {
-      throw new Error(lastError);
+      throw new Error(
+        "La API key de Gemini no es válida o está restringida. Revisa GEMINI_API_KEY en Vercel (sin restricciones de HTTP referrer).",
+      );
+    }
+    if (result.status === 422) {
+      throw new Error(
+        "Gemini no pudo analizar esa foto. Prueba con otra imagen más clara.",
+      );
     }
   }
 
-  throw new Error(lastError);
+  if (lastStatus === 429) {
+    throw new Error(
+      "Gemini está saturado ahora mismo. Espera un minuto y vuelve a intentarlo.",
+    );
+  }
+
+  throw new Error(HUMAN_IDENTIFY_ERROR);
 }

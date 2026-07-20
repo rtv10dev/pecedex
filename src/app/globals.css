@@ -1,0 +1,328 @@
+@import "tailwindcss";
+
+:root {
+  --sky: #7dd3fc;
+  --lagoon: #22d3ee;
+  --reef: #0ea5e9;
+  --deep-teal: #0369a1;
+  --sand: #fff7ed;
+  --shell: #ffffff;
+  --foam-white: #ecfeff;
+  --coral: #fb7185;
+  --parrot: #34d399;
+  --clownfish: #fb923c;
+  --anemone: #f472b6;
+  --tang: #818cf8;
+  --biolum: #2dd4bf;
+  --mango: #facc15;
+  --ink: #0f172a;
+  --slate: #475569;
+  --mist: #64748b;
+}
+
+@theme inline {
+  --color-sky: var(--sky);
+  --color-lagoon: var(--lagoon);
+  --color-reef: var(--reef);
+  --color-deep-teal: var(--deep-teal);
+  --color-sand: var(--sand);
+  --color-shell: var(--shell);
+  --color-foam-white: var(--foam-white);
+  --color-coral: var(--coral);
+  --color-parrot: var(--parrot);
+  --color-clownfish: var(--clownfish);
+  --color-anemone: var(--anemone);
+  --color-tang: var(--tang);
+  --color-biolum: var(--biolum);
+  --color-mango: var(--mango);
+  --color-ink: var(--ink);
+  --color-slate: var(--slate);
+  --color-mist: var(--mist);
+  --font-sans: var(--font-outfit);
+  --font-body: var(--font-inter);
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  min-height: 100%;
+  color: var(--ink);
+  font-family: var(--font-inter), system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-outfit), system-ui, sans-serif;
+}
+
+.caustics {
+  background-image:
+    radial-gradient(ellipse 70% 45% at 15% 30%, rgba(255, 255, 255, 0.55), transparent 55%),
+    radial-gradient(ellipse 55% 40% at 75% 45%, rgba(45, 212, 191, 0.45), transparent 55%),
+    radial-gradient(ellipse 45% 35% at 45% 75%, rgba(251, 146, 60, 0.28), transparent 50%),
+    radial-gradient(ellipse 40% 30% at 85% 80%, rgba(244, 114, 182, 0.22), transparent 50%);
+  background-size: 220% 220%;
+  animation: caustics-drift 18s ease-in-out infinite alternate;
+}
+
+@keyframes caustics-drift {
+  0% {
+    background-position: 0% 0%, 100% 100%, 40% 60%, 80% 20%;
+  }
+  100% {
+    background-position: 100% 40%, 0% 20%, 70% 10%, 20% 80%;
+  }
+}
+
+@keyframes float-gentle {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes bubble-rise {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.7;
+  }
+  90% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(-100vh) scale(1.15);
+    opacity: 0;
+  }
+}
+
+@keyframes rainbow-shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+.fish-card-float {
+  animation: float-gentle 4.5s ease-in-out infinite;
+}
+
+@keyframes card-photo-sway {
+  0%,
+  100% {
+    transform: perspective(700px) rotateY(-8deg) scale(1.08);
+  }
+  50% {
+    transform: perspective(700px) rotateY(8deg) scale(1.08);
+  }
+}
+
+.fish-card-sway {
+  animation: card-photo-sway 7s ease-in-out infinite;
+  transform-style: preserve-3d;
+}
+
+.rainbow-border {
+  background: linear-gradient(
+    90deg,
+    var(--coral),
+    var(--clownfish),
+    var(--mango),
+    var(--parrot),
+    var(--biolum),
+    var(--tang),
+    var(--anemone),
+    var(--coral)
+  );
+  background-size: 200% 100%;
+  animation: rainbow-shimmer 8s linear infinite;
+}
+
+.bubble {
+  position: absolute;
+  bottom: -2rem;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(255, 255, 255, 0.65),
+    rgba(45, 212, 191, 0.15) 45%,
+    transparent 70%
+  );
+  animation: bubble-rise var(--duration, 12s) linear infinite;
+  animation-delay: var(--delay, 0s);
+}
+
+/* MapLibre: controles y atribución dentro del lienzo tropical */
+.map-canvas .maplibregl-ctrl-group {
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 14px;
+  box-shadow: 0 8px 20px rgba(52, 211, 153, 0.2);
+  overflow: hidden;
+}
+
+.map-canvas .maplibregl-ctrl-group button {
+  width: 36px;
+  height: 36px;
+}
+
+.map-canvas .maplibregl-ctrl-attrib {
+  border-radius: 10px 0 0 0;
+  background: rgba(255, 255, 255, 0.85);
+  font-size: 10px;
+}
+
+.map-canvas .maplibregl-canvas {
+  outline: none;
+}
+
+/* Spiderfy: markers HTML van dentro del canvas-container y quedan detrás del <canvas> sin z-index */
+.map-canvas .maplibregl-canvas {
+  z-index: 0;
+}
+
+.map-canvas .maplibregl-marker {
+  z-index: 1;
+}
+
+.map-canvas .maplibregl-marker.fish-pin,
+.map-canvas .maplibregl-marker.spider-hub {
+  z-index: 2;
+}
+
+.spider-hub {
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, var(--coral), var(--clownfish));
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(251, 113, 133, 0.45);
+}
+
+.fish-pin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  opacity: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.fish-pin-spider {
+  width: 88px;
+}
+
+.fish-pin-solo {
+  width: 88px;
+}
+
+.fish-pin-frame {
+  display: block;
+  width: 52px;
+  height: 52px;
+  padding: 3px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    135deg,
+    var(--clownfish),
+    var(--anemone),
+    var(--tang)
+  );
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.28);
+}
+
+.fish-pin-solo .fish-pin-frame {
+  width: 48px;
+  height: 48px;
+}
+
+.fish-pin-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 9999px;
+  object-fit: cover;
+  background: var(--foam-white);
+}
+
+.fish-pin-name {
+  max-width: 88px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
+}
+
+.fish-pin:active .fish-pin-frame {
+  transform: scale(0.94);
+}
+
+@keyframes fish-pin-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.55);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.fish-pin-enter {
+  animation: fish-pin-pop 0.28s ease-out;
+}
+
+@keyframes ocean-fish-swim {
+  0%,
+  100% {
+    transform: translateX(-6px) rotate(-8deg);
+  }
+  50% {
+    transform: translateX(6px) rotate(8deg);
+  }
+}
+
+.ocean-fish-swim {
+  animation: ocean-fish-swim 1.35s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caustics,
+  .fish-card-float,
+  .fish-card-sway,
+  .rainbow-border,
+  .bubble,
+  .fish-pin-enter,
+  .ocean-fish-swim {
+    animation: none;
+  }
+
+  .bubble {
+    opacity: 0;
+  }
+}

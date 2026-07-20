@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Pecedex">
+  <defs>
+    <linearGradient id="bg" x1="64" y1="48" x2="448" y2="464" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#22d3ee"/>
+      <stop offset="0.45" stop-color="#0ea5e9"/>
+      <stop offset="1" stop-color="#0369a1"/>
+    </linearGradient>
+    <linearGradient id="fin" x1="280" y1="120" x2="400" y2="280" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fb923c"/>
+      <stop offset="1" stop-color="#fb7185"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <ellipse cx="250" cy="268" rx="150" ry="92" fill="#ecfeff"/>
+  <path d="M372 268c42-38 78-70 98-86-8 34-18 70-28 98 18 22 40 46 58 66-46-8-88-20-128-34z" fill="url(#fin)"/>
+  <path d="M120 268c-34-28-62-48-80-58 10 28 20 56 28 84-16 18-34 38-50 56 40-4 76-14 102-28z" fill="#2dd4bf"/>
+  <circle cx="318" cy="240" r="16" fill="#0f172a"/>
+  <circle cx="324" cy="234" r="5" fill="#ffffff"/>
+  <path d="M210 200c24-42 48-70 70-88-4 36-4 70 2 102z" fill="#facc15" opacity="0.9"/>
+</svg>

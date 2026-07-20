@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum DisplayMode {
+  PHOTO_ROTATOR
+  MODEL_3D
+}
+
+enum Model3dStatus {
+  PENDING
+  PROCESSING
+  READY
+  FAILED
+}
+
+model Species {
+  id              String     @id @default(cuid())
+  scientificName  String     @unique
+  commonName      String
+  description     String?
+  family          String?
+  habitat         String?
+  referenceImages Json       @default("[]")
+  sightings       Sighting[]
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
+
+model Location {
+  id            String     @id @default(cuid())
+  label         String
+  lat           Float
+  lng           Float
+  geocodeSource String     @default("photon")
+  sightings     Sighting[]
+  createdAt     DateTime   @default(now())
+
+  @@index([label])
+}
+
+model Sighting {
+  id                 String        @id @default(cuid())
+  speciesId          String
+  species            Species       @relation(fields: [speciesId], references: [id], onDelete: Cascade)
+  locationId         String
+  location           Location      @relation(fields: [locationId], references: [id])
+  photoUrl           String
+  photoThumbUrl      String
+  displayMode        DisplayMode   @default(PHOTO_ROTATOR)
+  model3dUrl         String?
+  model3dSource      String?
+  model3dStatus      Model3dStatus @default(PENDING)
+  sightedAt          DateTime?
+  registeredAt       DateTime      @default(now())
+  identificationMeta Json?
+  notes              String?
+
+  @@index([registeredAt])
+  @@index([locationId])
+}
+
+model AdminSession {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Memory {
+  id            String   @id @default(cuid())
+  photoUrl      String
+  photoThumbUrl String
+  description   String
+  takenAt       DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([takenAt])
+  @@index([createdAt])
+}

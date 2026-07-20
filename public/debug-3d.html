@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1"
+    />
+    <title>Pecedex 3D debug</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #0284c7;
+        font-family: system-ui, sans-serif;
+      }
+      #status {
+        position: fixed;
+        left: 8px;
+        right: 8px;
+        top: 8px;
+        z-index: 20;
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: rgba(15, 23, 42, 0.88);
+        color: #fff;
+        font-size: 13px;
+        line-height: 1.35;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      #status.err {
+        background: rgba(190, 18, 60, 0.95);
+      }
+      model-viewer {
+        width: 100%;
+        height: 100%;
+        background: #0284c7;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="status">Iniciando…</div>
+    <model-viewer
+      id="viewer"
+      camera-controls
+      touch-action="none"
+      auto-rotate
+      auto-rotate-delay="0"
+      rotation-per-second="28deg"
+      shadow-intensity="0.6"
+      exposure="1"
+      interaction-prompt="none"
+      loading="eager"
+      reveal="auto"
+    ></model-viewer>
+    <script type="module">
+      const status = document.getElementById("status");
+      const viewer = document.getElementById("viewer");
+      const params = new URLSearchParams(location.search);
+      const src =
+        params.get("src") || "/models/curated/fish-blue.glb";
+      const poster = params.get("poster") || "";
+
+      function setStatus(msg, isErr = false) {
+        status.textContent = msg;
+        status.classList.toggle("err", isErr);
+      }
+
+      setStatus(
+        "Origen: " +
+          location.origin +
+          "\nisSecureContext: " +
+          window.isSecureContext +
+          "\nCargando model-viewer…",
+      );
+
+      if (!window.isSecureContext) {
+        setStatus(
+          "Contexto NO seguro (http + IP).\n" +
+            "Safari/iOS bloquea el 3D fuera de localhost.\n" +
+            "Usa https://" +
+            location.hostname +
+            ":3000 (npm run dev:https)\n" +
+            "o prueba en http://localhost en el PC.",
+          true,
+        );
+      }
+
+      try {
+        await import("/vendor/model-viewer.min.js");
+        await customElements.whenDefined("model-viewer");
+        setStatus(
+          "model-viewer OK. Cargando GLB…\n" +
+            src +
+            "\nisSecureContext: " +
+            window.isSecureContext,
+        );
+        if (poster) viewer.setAttribute("poster", poster);
+        viewer.setAttribute("src", src);
+        viewer.addEventListener("load", () => {
+          setStatus("Modelo cargado.\n" + src);
+          setTimeout(() => {
+            status.style.opacity = "0.35";
+          }, 1500);
+        });
+        viewer.addEventListener("error", (e) => {
+          setStatus(
+            "Error cargando GLB:\n" + src + "\n" + (e?.detail || ""),
+            true,
+          );
+        });
+      } catch (err) {
+        setStatus(
+          "Error cargando model-viewer:\n" +
+            (err && err.message ? err.message : String(err)),
+          true,
+        );
+      }
+    </script>
+  </body>
+</html>

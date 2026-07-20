@@ -84,7 +84,7 @@ async function callGemini(
                 mime_type: mimeType.startsWith("image/")
                   ? mimeType
                   : "image/jpeg",
-                data: imageBytes.toString("base64"),
+                data: Buffer.from(Uint8Array.from(imageBytes)).toString("base64"),
               },
             },
           ],

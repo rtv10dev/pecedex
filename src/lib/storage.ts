@@ -18,6 +18,23 @@ function isBlobUrl(url: string) {
   return /^https?:\/\//i.test(url) && url.includes("blob.vercel-storage.com");
 }
 
+/** Copia a un ArrayBuffer “normal” (evita SharedArrayBuffer en fetch de Blob/undici). */
+function toPlainBuffer(input: ArrayBuffer | Buffer | Uint8Array): Buffer {
+  const view =
+    input instanceof Buffer
+      ? input
+      : input instanceof Uint8Array
+        ? input
+        : new Uint8Array(input);
+  const copy = new Uint8Array(view.byteLength);
+  copy.set(view);
+  return Buffer.from(copy.buffer, copy.byteOffset, copy.byteLength);
+}
+
+async function fileToPlainBuffer(file: File): Promise<Buffer> {
+  return toPlainBuffer(await file.arrayBuffer());
+}
+
 /** URLs que gestiona Pecedex (local /uploads o Vercel Blob). */
 export function isManagedUploadUrl(url: string | null | undefined): boolean {
   if (!url) return false;
@@ -29,9 +46,13 @@ async function putPublicBytes(
   bytes: Buffer,
   contentType: string,
 ): Promise<string> {
+  const plain = toPlainBuffer(bytes);
+
   if (useBlobStorage()) {
     const { put } = await import("@vercel/blob");
-    const blob = await put(pathname, bytes, {
+    // Uint8Array plano: el SDK usa fetch y falla con SharedArrayBuffer
+    const body = new Uint8Array(plain);
+    const blob = await put(pathname, body, {
       access: "public",
       contentType,
       addRandomSuffix: false,
@@ -48,7 +69,7 @@ async function putPublicBytes(
 
   const abs = path.join(process.cwd(), "public", pathname);
   await mkdir(path.dirname(abs), { recursive: true });
-  await writeFile(abs, bytes);
+  await writeFile(abs, plain);
   return `/${pathname.replace(/^\/+/, "")}`;
 }
 
@@ -58,7 +79,7 @@ async function readManagedBytes(publicUrl: string): Promise<Buffer> {
     if (!res.ok) {
       throw new Error("No se pudo leer el archivo remoto.");
     }
-    return Buffer.from(await res.arrayBuffer());
+    return toPlainBuffer(await res.arrayBuffer());
   }
 
   if (!publicUrl.startsWith("/")) {
@@ -90,7 +111,7 @@ async function savePhotoUpload(
   }
 
   const id = randomBytes(12).toString("hex");
-  const buffer = Buffer.from(await file.arrayBuffer());
+  const buffer = await fileToPlainBuffer(file);
   const image = sharp(buffer).rotate();
 
   const fullName = "full.webp";
@@ -124,7 +145,7 @@ async function savePhotoUpload(
   return { photoUrl, photoThumbUrl };
 }
 
-/** Guarda una copia temporal para identificación (se puede reutilizar al crear). */
+/** Prepara bytes JPEG en memoria para Gemini (sin subir a Blob/disco). */
 export async function saveTempIdentifyPhoto(file: File): Promise<{
   absPath: string | null;
   publicUrl: string;
@@ -140,44 +161,19 @@ export async function saveTempIdentifyPhoto(file: File): Promise<{
     throw new Error("La imagen supera 12 MB.");
   }
 
-  const id = randomBytes(12).toString("hex");
-  const bytes = Buffer.from(await file.arrayBuffer());
-  const normalized = await sharp(bytes)
-    .rotate()
-    .resize({ width: 1024, height: 1024, fit: "inside", withoutEnlargement: true })
-    .jpeg({ quality: 80 })
-    .toBuffer();
+  const source = await fileToPlainBuffer(file);
+  const normalized = toPlainBuffer(
+    await sharp(source)
+      .rotate()
+      .resize({ width: 1024, height: 1024, fit: "inside", withoutEnlargement: true })
+      .jpeg({ quality: 80 })
+      .toBuffer(),
+  );
 
-  const fileName = "identify.jpg";
-  const pathname = `uploads/tmp/${id}/${fileName}`;
-
-  // Con Blob: subir preview. Sin Blob en Vercel: data URL (Gemini usa `bytes` en memoria).
-  if (useBlobStorage()) {
-    const publicUrl = await putPublicBytes(pathname, normalized, "image/jpeg");
-    return {
-      absPath: null,
-      publicUrl,
-      mimeType: "image/jpeg",
-      bytes: normalized,
-    };
-  }
-
-  if (process.env.VERCEL) {
-    return {
-      absPath: null,
-      publicUrl: `data:image/jpeg;base64,${normalized.toString("base64")}`,
-      mimeType: "image/jpeg",
-      bytes: normalized,
-    };
-  }
-
-  const absPath = path.join(process.cwd(), "public", pathname);
-  await mkdir(path.dirname(absPath), { recursive: true });
-  await writeFile(absPath, normalized);
-
+  // Solo memoria: el cliente ya tiene preview y Gemini usa `bytes`.
   return {
-    absPath,
-    publicUrl: `/${pathname}`,
+    absPath: null,
+    publicUrl: "",
     mimeType: "image/jpeg",
     bytes: normalized,
   };
@@ -209,22 +205,23 @@ export async function saveModel3dFile(file: File): Promise<string> {
     throw new Error("El modelo supera 25 MB.");
   }
 
-  const bytes = Buffer.from(await file.arrayBuffer());
+  const bytes = await fileToPlainBuffer(file);
   assertGlbBytes(bytes);
   return saveModel3dBytes(bytes);
 }
 
 /** Guarda bytes de un .glb ya validados. */
 export async function saveModel3dBytes(bytes: Buffer): Promise<string> {
-  if (bytes.length > MODEL_MAX_BYTES) {
+  const plain = toPlainBuffer(bytes);
+  if (plain.length > MODEL_MAX_BYTES) {
     throw new Error("El modelo supera 25 MB.");
   }
-  assertGlbBytes(bytes);
+  assertGlbBytes(plain);
 
   const id = randomBytes(12).toString("hex");
   return putPublicBytes(
     `uploads/models/${id}/model.glb`,
-    bytes,
+    plain,
     "model/gltf-binary",
   );
 }

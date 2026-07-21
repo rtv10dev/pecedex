@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Cropper, { type Area } from "react-easy-crop";
 import {
   GALLERY_CROP_ASPECT,
   normalizeGalleryCropArea,
+  resolveImageSrcForCanvas,
 } from "@/lib/client-crop";
 import { cn } from "@/lib/utils";
 
@@ -22,8 +23,7 @@ interface PhotoCropEditorProps {
   className?: string;
 }
 
-const DEFAULT_STRIPE =
-  "from-coral via-clownfish to-mango";
+const DEFAULT_STRIPE = "from-coral via-clownfish to-mango";
 
 /**
  * Encuadre 4:3 (como la card de galería).
@@ -38,16 +38,48 @@ export function PhotoCropEditor({
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [resolvedSrc, setResolvedSrc] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    let revoke: (() => void) | undefined;
+    setResolvedSrc(null);
+    setLoadError(null);
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+
+    void resolveImageSrcForCanvas(imageSrc)
+      .then((resolved) => {
+        if (!alive) {
+          resolved.revoke?.();
+          return;
+        }
+        revoke = resolved.revoke;
+        setResolvedSrc(resolved.src);
+      })
+      .catch((error) => {
+        if (!alive) return;
+        setLoadError(
+          error instanceof Error
+            ? error.message
+            : "No se pudo cargar la imagen.",
+        );
+      });
+
+    return () => {
+      alive = false;
+      revoke?.();
+    };
+  }, [imageSrc]);
 
   const onCropComplete = useCallback(
     (_croppedArea: Area, croppedAreaPixels: Area) => {
       onCropAreaChange(croppedAreaPixels);
-      // Mini preview con el recorte en vivo (object-position approx via canvas is heavy;
-      // usamos el área visible del cropper reflejada en un contenedor 4:3 con object-cover
-      // + la misma posición relativa — más simple: data URL ligera del crop).
-      void updatePreview(imageSrc, croppedAreaPixels).then(setPreviewUrl);
+      if (!resolvedSrc) return;
+      void updatePreview(resolvedSrc, croppedAreaPixels).then(setPreviewUrl);
     },
-    [imageSrc, onCropAreaChange],
+    [resolvedSrc, onCropAreaChange],
   );
 
   return (
@@ -60,19 +92,25 @@ export function PhotoCropEditor({
       </div>
 
       <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-deep-teal/90">
-        <Cropper
-          image={imageSrc}
-          crop={crop}
-          zoom={zoom}
-          aspect={GALLERY_CROP_ASPECT}
-          onCropChange={setCrop}
-          onZoomChange={setZoom}
-          onCropComplete={onCropComplete}
-          showGrid={false}
-          classes={{
-            containerClassName: "rounded-2xl",
-          }}
-        />
+        {resolvedSrc ? (
+          <Cropper
+            image={resolvedSrc}
+            crop={crop}
+            zoom={zoom}
+            aspect={GALLERY_CROP_ASPECT}
+            onCropChange={setCrop}
+            onZoomChange={setZoom}
+            onCropComplete={onCropComplete}
+            showGrid={false}
+            classes={{
+              containerClassName: "rounded-2xl",
+            }}
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center px-4 text-center text-sm font-medium text-white/80">
+            {loadError ?? "Cargando imagen…"}
+          </div>
+        )}
       </div>
 
       <label className="block">
@@ -83,8 +121,9 @@ export function PhotoCropEditor({
           max={3}
           step={0.02}
           value={zoom}
+          disabled={!resolvedSrc}
           onChange={(e) => setZoom(Number(e.target.value))}
-          className="w-full accent-tang"
+          className="w-full accent-tang disabled:opacity-50"
         />
       </label>
 
@@ -103,7 +142,7 @@ export function PhotoCropEditor({
             <div className="relative aspect-[4/3] overflow-hidden bg-lagoon/20">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={previewUrl ?? imageSrc}
+                src={previewUrl ?? resolvedSrc ?? imageSrc}
                 alt=""
                 className="absolute inset-0 h-full w-full object-cover"
               />
@@ -136,9 +175,6 @@ async function updatePreview(imageSrc: string, area: Area): Promise<string> {
 
   const image = await new Promise<HTMLImageElement>((resolve, reject) => {
     const img = new Image();
-    if (!imageSrc.startsWith("blob:") && !imageSrc.startsWith("data:")) {
-      img.crossOrigin = "anonymous";
-    }
     img.onload = () => resolve(img);
     img.onerror = () => reject(new Error("preview"));
     img.src = imageSrc;

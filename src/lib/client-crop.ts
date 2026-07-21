@@ -12,6 +12,44 @@ export function normalizeGalleryCropArea(area: Area): Area {
   };
 }
 
+/**
+ * Prepara una URL usable en <img>/canvas.
+ * En Vercel, /api/media + crossOrigin="anonymous" sin CORS rompe el crop;
+ * hacemos fetch same-origin → blob URL.
+ */
+export async function resolveImageSrcForCanvas(src: string): Promise<{
+  src: string;
+  revoke?: () => void;
+}> {
+  if (src.startsWith("blob:") || src.startsWith("data:")) {
+    return { src };
+  }
+
+  const absolute =
+    typeof window !== "undefined" && src.startsWith("/")
+      ? new URL(src, window.location.origin).href
+      : src;
+
+  const isSameOrigin =
+    typeof window !== "undefined" &&
+    absolute.startsWith(window.location.origin);
+
+  if (isSameOrigin || src.startsWith("/")) {
+    const res = await fetch(src.startsWith("/") ? src : absolute);
+    if (!res.ok) {
+      throw new Error("No se pudo cargar la imagen para encuadrar.");
+    }
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    return {
+      src: objectUrl,
+      revoke: () => URL.revokeObjectURL(objectUrl),
+    };
+  }
+
+  return { src: absolute };
+}
+
 /** Recorta la imagen en el navegador (área de react-easy-crop) → JPEG File. */
 export async function cropImageToFile(
   imageSrc: string,
@@ -23,40 +61,45 @@ export async function cropImageToFile(
   const fileName = options?.fileName ?? "thumb.jpg";
   const crop = normalizeGalleryCropArea(area);
 
-  const image = await loadImage(imageSrc);
-  const canvas = document.createElement("canvas");
-  canvas.width = crop.width;
-  canvas.height = crop.height;
+  const resolved = await resolveImageSrcForCanvas(imageSrc);
+  try {
+    const image = await loadImage(resolved.src);
+    const canvas = document.createElement("canvas");
+    canvas.width = crop.width;
+    canvas.height = crop.height;
 
-  const ctx = canvas.getContext("2d");
-  if (!ctx) {
-    throw new Error("No se pudo preparar el encuadre.");
-  }
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      throw new Error("No se pudo preparar el encuadre.");
+    }
 
-  ctx.drawImage(
-    image,
-    crop.x,
-    crop.y,
-    crop.width,
-    crop.height,
-    0,
-    0,
-    crop.width,
-    crop.height,
-  );
-
-  const blob = await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob(
-      (result) => {
-        if (result) resolve(result);
-        else reject(new Error("No se pudo generar la miniatura."));
-      },
-      mimeType,
-      quality,
+    ctx.drawImage(
+      image,
+      crop.x,
+      crop.y,
+      crop.width,
+      crop.height,
+      0,
+      0,
+      crop.width,
+      crop.height,
     );
-  });
 
-  return new File([blob], fileName, { type: mimeType });
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (result) => {
+          if (result) resolve(result);
+          else reject(new Error("No se pudo generar la miniatura."));
+        },
+        mimeType,
+        quality,
+      );
+    });
+
+    return new File([blob], fileName, { type: mimeType });
+  } finally {
+    resolved.revoke?.();
+  }
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -66,7 +109,14 @@ function loadImage(src: string): Promise<HTMLImageElement> {
     image.addEventListener("error", () =>
       reject(new Error("No se pudo cargar la imagen para encuadrar.")),
     );
-    if (!src.startsWith("blob:") && !src.startsWith("data:")) {
+    // Solo CORS en orígenes externos reales (no en /api/media same-origin)
+    if (
+      typeof window !== "undefined" &&
+      /^https?:\/\//i.test(src) &&
+      !src.startsWith(window.location.origin) &&
+      !src.startsWith("blob:") &&
+      !src.startsWith("data:")
+    ) {
       image.crossOrigin = "anonymous";
     }
     image.src = src;

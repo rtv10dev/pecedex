@@ -39,6 +39,8 @@ export async function GET(request: Request) {
       headers: {
         "Content-Type": contentType,
         "Cache-Control": "public, max-age=31536000, immutable",
+        // Permite canvas/crop same-site y next/image
+        "Access-Control-Allow-Origin": "*",
       },
     });
   } catch (error) {

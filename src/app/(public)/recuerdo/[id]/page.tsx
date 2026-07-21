@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import type { Metadata } from "next";
 import { ArrowLeft, Calendar } from "lucide-react";
 import { Header } from "@/components/layout/Header";
+import { FullPhotoButton } from "@/components/memories/FullPhotoButton";
 import { DeleteMemoryButton } from "@/components/admin/DeleteMemoryButton";
 import { EditGalleryThumbPanel } from "@/components/admin/EditGalleryThumbPanel";
 import { getAdminSession } from "@/lib/auth/session";
@@ -59,16 +59,7 @@ export default async function MemoryDetailPage({
 
         <div className="overflow-hidden rounded-3xl border-2 border-white/80 bg-shell shadow-xl shadow-anemone/20">
           <div className="rainbow-border h-1.5" />
-          <div className="relative aspect-square">
-            <Image
-              src={memory.photoUrl}
-              alt={memory.description}
-              fill
-              className="object-cover"
-              sizes="(max-width: 640px) 100vw, 512px"
-              priority
-            />
-          </div>
+          <FullPhotoButton src={memory.photoUrl} alt={memory.description} />
           <div className="space-y-3 bg-gradient-to-b from-foam-white to-shell p-5">
             <div className="flex items-start gap-3 rounded-2xl bg-gradient-to-r from-clownfish/15 to-mango/10 px-4 py-3">
               <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-xl bg-white/80 shadow-sm">

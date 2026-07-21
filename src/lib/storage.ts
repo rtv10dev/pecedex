@@ -242,7 +242,7 @@ export async function saveTempIdentifyPhoto(file: File): Promise<{
   };
 }
 
-const MODEL_MAX_BYTES = 25 * 1024 * 1024;
+const MODEL_MAX_BYTES = 50 * 1024 * 1024;
 
 function isGlbFile(file: File): boolean {
   const name = file.name.toLowerCase();
@@ -265,7 +265,7 @@ export async function saveModel3dFile(file: File): Promise<string> {
     throw new Error("El archivo debe ser un modelo .glb.");
   }
   if (file.size > MODEL_MAX_BYTES) {
-    throw new Error("El modelo supera 25 MB.");
+    throw new Error("El modelo supera 50 MB.");
   }
 
   const bytes = await fileToPlainBuffer(file);
@@ -277,7 +277,7 @@ export async function saveModel3dFile(file: File): Promise<string> {
 export async function saveModel3dBytes(bytes: Buffer): Promise<string> {
   const plain = toPlainBuffer(bytes);
   if (plain.length > MODEL_MAX_BYTES) {
-    throw new Error("El modelo supera 25 MB.");
+    throw new Error("El modelo supera 50 MB.");
   }
   assertGlbBytes(plain);
 

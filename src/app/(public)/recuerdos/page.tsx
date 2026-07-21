@@ -45,7 +45,7 @@ export default async function MemoriesPage() {
         ) : (
           <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {memories.map((memory, index) => (
-              <li key={memory.id}>
+              <li key={memory.id} className="h-full">
                 <MemoryCard memory={memory} index={index} />
               </li>
             ))}

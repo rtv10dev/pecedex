@@ -47,7 +47,7 @@ export default async function GalleryPage({ searchParams }: GalleryPageProps) {
             {sightings.map((sighting, index) => (
               <li
                 key={sighting.id}
-                className="fish-card-float"
+                className="fish-card-float h-full"
                 style={{ animationDelay: `${index * 0.15}s` }}
               >
                 <FishCard sighting={sighting} index={index} />

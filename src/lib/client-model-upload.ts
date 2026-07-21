@@ -22,8 +22,8 @@ export async function uploadGlbToBlob(file: File): Promise<{ pathname: string }>
   if (!isGlbFile(file)) {
     throw new Error("El archivo debe ser un modelo .glb.");
   }
-  if (file.size > 25 * 1024 * 1024) {
-    throw new Error("El modelo supera 25 MB.");
+  if (file.size > 50 * 1024 * 1024) {
+    throw new Error("El modelo supera 50 MB.");
   }
 
   const id = crypto.randomUUID().replace(/-/g, "");

@@ -41,7 +41,7 @@ export async function POST(request: Request): Promise<NextResponse> {
             "application/octet-stream",
             "application/gltf-buffer",
           ],
-          maximumSizeInBytes: 25 * 1024 * 1024,
+          maximumSizeInBytes: 50 * 1024 * 1024,
           addRandomSuffix: false,
           allowOverwrite: false,
         };

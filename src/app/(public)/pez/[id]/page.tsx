@@ -93,9 +93,7 @@ export default async function FishDetailPage({
         </Link>
 
         <div className="rounded-3xl border-2 border-white/80 bg-shell shadow-xl shadow-anemone/20">
-          <div className="overflow-hidden rounded-t-[1.35rem]">
-            <div className="rainbow-border h-1.5" />
-          </div>
+          <div className="rainbow-border h-1.5 rounded-t-[calc(1.5rem-2px)]" />
 
           {/*
             Sin overflow-hidden aquí: en Safari iOS el WebGL dentro de
@@ -119,7 +117,7 @@ export default async function FishDetailPage({
             </div>
           </div>
 
-          <div className="space-y-3 overflow-hidden rounded-b-[1.35rem] bg-gradient-to-b from-foam-white to-shell p-5">
+          <div className="space-y-3 rounded-b-[calc(1.5rem-2px)] bg-gradient-to-b from-foam-white to-shell p-5">
             <InfoRow
               icon={<MapPin className="h-4 w-4 text-tang" />}
               label="Ubicación"

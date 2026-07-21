@@ -24,7 +24,7 @@ export default async function MemoriesPage() {
         subtitle={
           memories.length > 0
             ? `${memories.length} recuerdo${memories.length === 1 ? "" : "s"}`
-            : "Momentos fuera del agua"
+            : undefined
         }
       />
       <main className="mx-auto w-full max-w-lg flex-1 px-4 py-4">

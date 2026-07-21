@@ -8,6 +8,7 @@ import {
   useState,
   useTransition,
 } from "react";
+import type { Area } from "react-easy-crop";
 import {
   Camera,
   LoaderCircle,
@@ -27,7 +28,9 @@ import {
 } from "@/app/admin/sighting-actions";
 import { LocationMapPickerLazy } from "@/components/admin/LocationMapPickerLazy";
 import { AddSightingModelStep } from "@/components/admin/AddSightingModelStep";
+import { PhotoCropEditor } from "@/components/admin/PhotoCropEditor";
 import type { GeocodeResult } from "@/lib/geocode";
+import { cropImageToFile } from "@/lib/client-crop";
 import { normalizePhotoForUpload } from "@/lib/client-photo";
 import { cn } from "@/lib/utils";
 
@@ -35,8 +38,12 @@ const createInitial: CreateSightingState = {};
 
 export function AddSightingForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cropAreaRef = useRef<Area | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [hasPhoto, setHasPhoto] = useState(false);
+  const [cropError, setCropError] = useState<string | null>(null);
+  const [preparingCrop, setPreparingCrop] = useState(false);
+  const [, startTransition] = useTransition();
 
   const [commonName, setCommonName] = useState("");
   const [scientificName, setScientificName] = useState("");
@@ -138,6 +145,8 @@ export function AddSightingForm() {
     if (previewUrl?.startsWith("blob:")) {
       URL.revokeObjectURL(previewUrl);
     }
+    cropAreaRef.current = null;
+    setCropError(null);
     if (!file) {
       setHasPhoto(false);
       setPreviewUrl(null);
@@ -165,6 +174,36 @@ export function AddSightingForm() {
         error: "No se pudo leer esa foto. Prueba con otra (JPEG/PNG).",
       });
     }
+  }
+
+  function handleFormSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setCropError(null);
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+
+    void (async () => {
+      setPreparingCrop(true);
+      try {
+        if (previewUrl && cropAreaRef.current) {
+          const thumb = await cropImageToFile(previewUrl, cropAreaRef.current, {
+            fileName: "thumb.jpg",
+          });
+          formData.set("thumb", thumb);
+        }
+        startTransition(() => {
+          createAction(formData);
+        });
+      } catch (error) {
+        setCropError(
+          error instanceof Error
+            ? error.message
+            : "No se pudo preparar el encuadre.",
+        );
+      } finally {
+        setPreparingCrop(false);
+      }
+    })();
   }
 
   function selectLocation(place: GeocodeResult) {
@@ -271,7 +310,7 @@ export function AddSightingForm() {
 
   return (
     <div className="space-y-4">
-      <form action={createAction} className="space-y-4">
+      <form onSubmit={handleFormSubmit} className="space-y-4">
         <section className="overflow-hidden rounded-3xl border-2 border-white/80 bg-shell/95 shadow-xl shadow-lagoon/15">
           <div className="h-1.5 bg-gradient-to-r from-lagoon via-tang to-biolum" />
           <div className="space-y-4 p-4">
@@ -289,22 +328,13 @@ export function AddSightingForm() {
 
             <label
               className={cn(
-                "flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-4 py-8 transition",
+                "flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-4 py-6 transition",
                 hasPhoto
                   ? "border-tang/40 bg-foam-white"
                   : "border-lagoon/40 bg-gradient-to-br from-foam-white via-shell to-sand/60",
               )}
             >
-              {previewUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={previewUrl}
-                  alt="Vista previa"
-                  className="mb-3 aspect-[4/3] w-full max-w-sm rounded-2xl object-cover"
-                />
-              ) : (
-                <Fish className="mb-2 h-10 w-10 text-lagoon" />
-              )}
+              {!hasPhoto ? <Fish className="mb-2 h-10 w-10 text-lagoon" /> : null}
               <span className="text-sm font-bold text-deep-teal">
                 {hasPhoto ? "Cambiar foto" : "Elegir foto"}
               </span>
@@ -322,10 +352,26 @@ export function AddSightingForm() {
               />
             </label>
 
+            {previewUrl ? (
+              <PhotoCropEditor
+                key={previewUrl}
+                imageSrc={previewUrl}
+                onCropAreaChange={(area) => {
+                  cropAreaRef.current = area;
+                }}
+                preview={{
+                  title: commonName || "Nuevo avistamiento",
+                  subtitle: scientificName || undefined,
+                  footer: locationLabel || locationQuery || undefined,
+                  stripeClassName: "from-coral via-clownfish to-mango",
+                }}
+              />
+            ) : null}
+
             <button
               type="button"
               onClick={handleIdentify}
-              disabled={!hasPhoto || identifying || creating}
+              disabled={!hasPhoto || identifying || creating || preparingCrop}
               className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-parrot via-biolum to-lagoon px-4 py-3 font-bold text-ink shadow-lg shadow-parrot/25 transition active:scale-[0.99] disabled:opacity-60"
             >
               {identifying ? (
@@ -581,26 +627,26 @@ export function AddSightingForm() {
           </div>
         </section>
 
-        {createState.error ? (
+        {createState.error || cropError ? (
           <p
             role="alert"
             className="rounded-2xl border border-coral/30 bg-coral/10 px-3 py-2 text-sm font-medium text-coral"
           >
-            {createState.error}
+            {cropError ?? createState.error}
           </p>
         ) : null}
 
         <button
           type="submit"
-          disabled={creating || !hasPhoto}
+          disabled={creating || preparingCrop || !hasPhoto}
           className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-coral via-anemone to-tang px-4 py-3.5 font-bold text-white shadow-lg shadow-coral/30 transition active:scale-[0.99] disabled:opacity-60"
         >
-          {creating ? (
+          {creating || preparingCrop ? (
             <LoaderCircle className="h-5 w-5 animate-spin" />
           ) : (
             <Fish className="h-5 w-5" />
           )}
-          {creating ? "Guardando…" : "Guardar en Pecedex"}
+          {creating || preparingCrop ? "Guardando…" : "Guardar en Pecedex"}
         </button>
       </form>
     </div>

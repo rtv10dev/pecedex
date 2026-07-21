@@ -98,6 +98,7 @@ async function putPublicBytes(
   pathname: string,
   bytes: Buffer,
   contentType: string,
+  options?: { allowOverwrite?: boolean },
 ): Promise<string> {
   const plain = toPlainBuffer(bytes);
 
@@ -108,6 +109,7 @@ async function putPublicBytes(
       access,
       contentType,
       addRandomSuffix: false,
+      allowOverwrite: options?.allowOverwrite ?? false,
     });
     // Store privado: servir vía /api/media. Público: URL directa de Blob.
     return access === "private" ? toAppMediaUrl(blob.pathname) : blob.url;
@@ -148,21 +150,29 @@ async function readManagedBytes(publicUrl: string): Promise<Buffer> {
   if (!publicUrl.startsWith("/")) {
     throw new Error("URL de archivo no válida.");
   }
-  return readFile(path.join(process.cwd(), "public", publicUrl));
-}
-
-export async function saveSightingPhoto(file: File): Promise<SavedPhoto> {
-  return savePhotoUpload(file);
+  const clean = publicUrl.split("?")[0] ?? publicUrl;
+  return readFile(path.join(process.cwd(), "public", clean));
 }
 
 /** Misma pipeline de imagen que avistamientos (full + thumb webp). */
-export async function saveMemoryPhoto(file: File): Promise<SavedPhoto> {
-  return savePhotoUpload(file, "memories");
+export async function saveMemoryPhoto(
+  file: File,
+  thumbFile?: File | null,
+): Promise<SavedPhoto> {
+  return savePhotoUpload(file, "memories", thumbFile);
+}
+
+export async function saveSightingPhoto(
+  file: File,
+  thumbFile?: File | null,
+): Promise<SavedPhoto> {
+  return savePhotoUpload(file, undefined, thumbFile);
 }
 
 async function savePhotoUpload(
   file: File,
   subdir?: string,
+  thumbFile?: File | null,
 ): Promise<SavedPhoto> {
   if (!file.type.startsWith("image/")) {
     throw new Error("El archivo debe ser una imagen.");
@@ -186,11 +196,13 @@ async function savePhotoUpload(
     .webp({ quality: 82 })
     .toBuffer();
 
-  const thumbBytes = await image
-    .clone()
-    .resize({ width: 480, height: 480, fit: "cover" })
-    .webp({ quality: 78 })
-    .toBuffer();
+  const thumbBytes = thumbFile
+    ? await processGalleryThumb(thumbFile)
+    : await image
+        .clone()
+        .resize({ width: 640, height: 480, fit: "cover" })
+        .webp({ quality: 78 })
+        .toBuffer();
 
   const basePath = subdir ? `uploads/${subdir}/${id}` : `uploads/${id}`;
 
@@ -206,6 +218,55 @@ async function savePhotoUpload(
   );
 
   return { photoUrl, photoThumbUrl };
+}
+
+async function processGalleryThumb(thumbFile: File): Promise<Buffer> {
+  if (!thumbFile.type.startsWith("image/")) {
+    throw new Error("La miniatura debe ser una imagen.");
+  }
+  const buffer = await fileToPlainBuffer(thumbFile);
+  // Ya viene recortado 4:3 desde el cliente: no volver a aplicar cover
+  // (recortaría un poco más y no coincidiría con el preview).
+  return toPlainBuffer(
+    await sharp(buffer)
+      .rotate()
+      .resize({ width: 640, height: 480, fit: "fill" })
+      .webp({ quality: 82 })
+      .toBuffer(),
+  );
+}
+
+/**
+ * Sustituye solo el thumb de galería (misma carpeta que full.webp).
+ * Devuelve la nueva photoThumbUrl.
+ */
+export async function replaceGalleryThumb(
+  photoUrl: string,
+  thumbFile: File,
+): Promise<string> {
+  const thumbBytes = await processGalleryThumb(thumbFile);
+
+  const photoPath = blobPathnameFromPublicUrl(photoUrl);
+  let thumbPathname: string;
+
+  if (photoPath && /\/full\.webp$/i.test(photoPath)) {
+    thumbPathname = photoPath.replace(/\/full\.webp$/i, "/thumb.webp");
+  } else if (photoUrl.startsWith("/uploads/") && /\/full\.webp$/i.test(photoUrl)) {
+    thumbPathname = photoUrl
+      .replace(/\/full\.webp$/i, "/thumb.webp")
+      .replace(/^\//, "");
+  } else {
+    const id = randomBytes(12).toString("hex");
+    thumbPathname = `uploads/${id}/thumb.webp`;
+  }
+
+  // Sobrescribe thumb.webp sin borrar la carpeta (deleteUpload borra el dir entero).
+  const url = await putPublicBytes(thumbPathname, thumbBytes, "image/webp", {
+    allowOverwrite: true,
+  });
+  // Cache-Control immutable en /api/media → hay que cambiar la URL
+  const sep = url.includes("?") ? "&" : "?";
+  return `${url}${sep}v=${Date.now()}`;
 }
 
 /** Prepara bytes JPEG en memoria para Gemini (sin subir a Blob/disco). */
@@ -315,8 +376,9 @@ export async function copyUploadModelToUploads(
 }
 
 function isSafeUploadRelative(publicUrl: string): boolean {
-  if (!publicUrl.startsWith("/uploads/")) return false;
-  if (publicUrl.includes("..") || publicUrl.includes("\0")) return false;
+  const clean = publicUrl.split("?")[0] ?? publicUrl;
+  if (!clean.startsWith("/uploads/")) return false;
+  if (clean.includes("..") || clean.includes("\0")) return false;
   return true;
 }
 
@@ -324,24 +386,25 @@ function isSafeUploadRelative(publicUrl: string): boolean {
 export async function deleteUploadByPublicUrl(
   publicUrl: string | null | undefined,
 ): Promise<void> {
-  if (!publicUrl || !isManagedUploadUrl(publicUrl)) return;
+  if (!publicUrl || !isManagedUploadUrl(publicUrl.split("?")[0] ?? publicUrl)) return;
 
-  const blobPath = blobPathnameFromPublicUrl(publicUrl);
+  const cleanUrl = publicUrl.split("?")[0] ?? publicUrl;
+  const blobPath = blobPathnameFromPublicUrl(cleanUrl);
   if (blobPath && useBlobStorage()) {
     const { del } = await import("@vercel/blob");
     await del(blobPath).catch(() => {});
     return;
   }
 
-  if (isBlobUrl(publicUrl)) {
+  if (isBlobUrl(cleanUrl)) {
     const { del } = await import("@vercel/blob");
-    await del(publicUrl).catch(() => {});
+    await del(cleanUrl).catch(() => {});
     return;
   }
 
-  if (!isSafeUploadRelative(publicUrl)) return;
+  if (!isSafeUploadRelative(cleanUrl)) return;
 
-  const absFile = path.join(process.cwd(), "public", publicUrl);
+  const absFile = path.join(process.cwd(), "public", cleanUrl);
   const absDir = path.dirname(absFile);
   const uploadsRoot = path.join(process.cwd(), "public", "uploads");
   const resolved = path.resolve(absDir);

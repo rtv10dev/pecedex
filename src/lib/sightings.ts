@@ -9,6 +9,8 @@ export type SightingListItem = {
   sightedAt: Date | null;
   displayMode: "PHOTO_ROTATOR" | "MODEL_3D";
   model3dStatus: "PENDING" | "PROCESSING" | "READY" | "FAILED";
+  model3dUrl: string | null;
+  model3dSource: string | null;
   species: {
     commonName: string;
     scientificName: string;

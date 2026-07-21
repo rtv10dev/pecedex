@@ -6,6 +6,7 @@ import { MapPin } from "lucide-react";
 import type { SightingListItem } from "@/lib/sightings";
 import { cn } from "@/lib/utils";
 import { useGalleryStore } from "@/stores/galleryStore";
+import { hasDisplayableModel3d } from "@/lib/model3d/display";
 
 const STRIPE_STYLES = [
   "from-coral via-clownfish to-mango",
@@ -32,6 +33,12 @@ interface FishCardProps {
 export function FishCard({ sighting, index = 0, className }: FishCardProps) {
   const stripe = STRIPE_STYLES[index % STRIPE_STYLES.length];
   const pinColor = PIN_COLORS[index % PIN_COLORS.length];
+  const show3d = hasDisplayableModel3d({
+    displayMode: sighting.displayMode,
+    model3dStatus: sighting.model3dStatus,
+    model3dUrl: sighting.model3dUrl,
+    model3dSource: sighting.model3dSource,
+  });
 
   return (
     <Link
@@ -45,21 +52,20 @@ export function FishCard({ sighting, index = 0, className }: FishCardProps) {
       )}
     >
       <div className={cn("h-2 shrink-0 bg-gradient-to-r", stripe)} />
-      <div className="relative aspect-[4/3] shrink-0 overflow-hidden bg-gradient-to-br from-lagoon/30 via-anemone/15 to-clownfish/25">
+      <div className="relative aspect-[4/3] shrink-0 overflow-hidden bg-gradient-to-br from-lagoon/20 via-anemone/10 to-clownfish/20">
         <Image
           src={sighting.photoThumbUrl}
           alt={sighting.species.commonName}
           fill
-          className="object-contain p-1.5 transition duration-500 group-hover:scale-[1.02]"
+          className="object-cover"
           sizes="(max-width: 640px) 100vw, 50vw"
         />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-deep-teal/15 via-transparent to-white/5" />
+        <div className="absolute inset-0 bg-gradient-to-t from-deep-teal/25 via-transparent to-white/10" />
         {sighting.model3dStatus === "PROCESSING" ? (
           <span className="absolute left-2 top-2 rounded-full bg-clownfish/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
             Generando…
           </span>
-        ) : sighting.displayMode === "MODEL_3D" &&
-          sighting.model3dStatus === "READY" ? (
+        ) : show3d ? (
           <span className="absolute left-2 top-2 rounded-full bg-deep-teal/85 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
             3D
           </span>

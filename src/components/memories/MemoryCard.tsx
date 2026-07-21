@@ -36,7 +36,7 @@ export function MemoryCard({ memory, index = 0, className }: MemoryCardProps) {
           src={memory.photoThumbUrl}
           alt={memory.description}
           fill
-          className="object-cover transition duration-500 group-hover:scale-[1.03]"
+          className="object-cover"
           sizes="(max-width: 640px) 100vw, 50vw"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-deep-teal/35 via-transparent to-white/10" />

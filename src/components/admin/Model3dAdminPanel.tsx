@@ -4,7 +4,6 @@ import { useActionState, useState } from "react";
 import { Box, Loader2, Search, Trash2 } from "lucide-react";
 import {
   attachCandidateAction,
-  attachCuratedModelAction,
   clearModel3dAction,
   searchFreeModelsAction,
   type Model3dActionState,
@@ -17,7 +16,6 @@ interface Model3dAdminPanelProps {
   sightingId: string;
   model3dStatus: "PENDING" | "PROCESSING" | "READY" | "FAILED";
   model3dSource: string | null;
-  hasCuratedMatch: boolean;
   scientificName: string;
   commonName: string;
 }
@@ -44,7 +42,6 @@ export function Model3dAdminPanel({
   sightingId,
   model3dStatus,
   model3dSource,
-  hasCuratedMatch,
   scientificName,
   commonName,
 }: Model3dAdminPanelProps) {
@@ -57,23 +54,16 @@ export function Model3dAdminPanel({
     attachCandidateAction,
     initialAction,
   );
-  const [curatedState, curatedAction, curatedPending] = useActionState(
-    attachCuratedModelAction,
-    initialAction,
-  );
   const [clearState, clearAction, clearPending] = useActionState(
     clearModel3dAction,
     initialAction,
   );
 
-  const pending =
-    searchPending || attachPending || curatedPending || clearPending;
+  const pending = searchPending || attachPending || clearPending;
 
   const message =
     attachState.success ||
     attachState.error ||
-    curatedState.success ||
-    curatedState.error ||
     uploadState.success ||
     uploadState.error ||
     clearState.success ||
@@ -82,7 +72,6 @@ export function Model3dAdminPanel({
 
   const isError = Boolean(
     attachState.error ||
-      curatedState.error ||
       uploadState.error ||
       clearState.error ||
       searchState.error,
@@ -99,8 +88,12 @@ export function Model3dAdminPanel({
           <div>
             <h2 className="font-bold text-ink">Modelo 3D (admin)</h2>
             <p className="text-xs text-mist">
-              {statusLabel(model3dStatus)}
-              {model3dSource ? ` · ${model3dSource}` : ""}
+              {model3dSource?.startsWith("curated")
+                ? "Sin modelo (foto fija)"
+                : statusLabel(model3dStatus)}
+              {model3dSource && !model3dSource.startsWith("curated")
+                ? ` · ${model3dSource}`
+                : ""}
             </p>
             <p className="mt-0.5 text-xs italic text-mist">
               {commonName} · {scientificName}
@@ -124,24 +117,6 @@ export function Model3dAdminPanel({
               Buscar modelos gratis
             </button>
           </form>
-
-          {hasCuratedMatch ? (
-            <form action={curatedAction}>
-              <input type="hidden" name="sightingId" value={sightingId} />
-              <button
-                type="submit"
-                disabled={pending}
-                className="inline-flex items-center gap-1.5 rounded-full bg-lagoon/15 px-3 py-1.5 text-xs font-bold text-deep-teal disabled:opacity-60"
-              >
-                {curatedPending ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Box className="h-3.5 w-3.5" />
-                )}
-                Atajo curado
-              </button>
-            </form>
-          ) : null}
 
           <GlbUploadButton
             sightingId={sightingId}

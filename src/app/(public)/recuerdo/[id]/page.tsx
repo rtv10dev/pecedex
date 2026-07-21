@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import { ArrowLeft, Calendar } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { DeleteMemoryButton } from "@/components/admin/DeleteMemoryButton";
+import { EditGalleryThumbPanel } from "@/components/admin/EditGalleryThumbPanel";
 import { getAdminSession } from "@/lib/auth/session";
 import { getMemoryById } from "@/lib/memories";
 import { APP_NAME } from "@/lib/constants";
@@ -97,7 +98,16 @@ export default async function MemoryDetailPage({
             <p className="mb-3 text-xs font-bold uppercase tracking-wide text-coral">
               Zona admin
             </p>
-            <DeleteMemoryButton memoryId={memory.id} label={shortLabel} />
+            <div className="space-y-3">
+              <EditGalleryThumbPanel
+                kind="memory"
+                id={memory.id}
+                photoUrl={memory.photoUrl}
+                previewTitle={memory.description}
+                stripeClassName="from-anemone via-coral to-clownfish"
+              />
+              <DeleteMemoryButton memoryId={memory.id} label={shortLabel} />
+            </div>
           </section>
         ) : null}
       </main>

@@ -13,6 +13,7 @@ import { tryAutoReuseSpeciesModel } from "@/lib/model3d/attach";
 import {
   deleteUploadByPublicUrl,
   isManagedUploadUrl,
+  replaceGalleryThumb,
   saveSightingPhoto,
   saveTempIdentifyPhoto,
 } from "@/lib/storage";
@@ -155,7 +156,10 @@ export async function createSightingAction(
   let sightingId: string;
 
   try {
-    const saved = await saveSightingPhoto(photo);
+    const thumb = formData.get("thumb");
+    const thumbFile =
+      thumb instanceof File && thumb.size > 0 ? thumb : null;
+    const saved = await saveSightingPhoto(photo, thumbFile);
 
     const species = await prisma.species.upsert({
       where: { scientificName },
@@ -309,4 +313,55 @@ export async function deleteSightingAction(
   revalidatePath(`/pez/${sightingId}`);
 
   redirect("/");
+}
+
+export type UpdateThumbState = {
+  error?: string;
+  ok?: boolean;
+};
+
+/** Recorta de nuevo el thumb de galería a partir de la foto completa. */
+export async function updateSightingThumbAction(
+  _prev: UpdateThumbState,
+  formData: FormData,
+): Promise<UpdateThumbState> {
+  await requireAdminSession();
+
+  const sightingId = String(formData.get("sightingId") ?? "").trim();
+  const thumb = formData.get("thumb");
+
+  if (!sightingId) {
+    return { error: "Falta el avistamiento." };
+  }
+  if (!(thumb instanceof File) || thumb.size === 0) {
+    return { error: "Falta el encuadre." };
+  }
+
+  const sighting = await prisma.sighting.findUnique({
+    where: { id: sightingId },
+    select: { id: true, photoUrl: true },
+  });
+  if (!sighting) {
+    return { error: "Avistamiento no encontrado." };
+  }
+
+  try {
+    const photoThumbUrl = await replaceGalleryThumb(sighting.photoUrl, thumb);
+    await prisma.sighting.update({
+      where: { id: sighting.id },
+      data: { photoThumbUrl },
+    });
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "No se pudo guardar el encuadre.",
+    };
+  }
+
+  revalidatePath("/");
+  revalidatePath("/mapa");
+  revalidatePath(`/pez/${sightingId}`);
+  return { ok: true };
 }

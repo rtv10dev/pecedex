@@ -5,10 +5,8 @@ import { requireAdminSession } from "@/lib/auth/session";
 import {
   attachBlobPathnameModel,
   attachCandidateModel,
-  attachCuratedModel,
   attachUploadedModel,
   clearModel3d,
-  curatedAsCandidate,
   findReusableSpeciesModel,
   reuseAsCandidate,
 } from "@/lib/model3d/attach";
@@ -71,11 +69,6 @@ export async function searchFreeModelsAction(
         `Reutilizar 3D de ${sighting.species.commonName}`,
       ),
     );
-  }
-
-  const curated = curatedAsCandidate(sighting.species.scientificName);
-  if (curated) {
-    candidates.push(curated);
   }
 
   try {
@@ -142,44 +135,6 @@ export async function attachCandidateAction(
         error instanceof Error
           ? error.message
           : "No se pudo adjuntar el candidato.",
-    };
-  }
-}
-
-export async function attachCuratedModelAction(
-  _prev: Model3dActionState,
-  formData: FormData,
-): Promise<Model3dActionState> {
-  await requireAdminSession();
-
-  const sightingId = String(formData.get("sightingId") ?? "");
-
-  if (!sightingId) {
-    return { error: "Falta el avistamiento." };
-  }
-
-  const sighting = await prisma.sighting.findUnique({
-    where: { id: sightingId },
-    include: { species: { select: { scientificName: true } } },
-  });
-
-  if (!sighting) {
-    return { error: "Avistamiento no encontrado." };
-  }
-
-  try {
-    const result = await attachCuratedModel(
-      sightingId,
-      sighting.species.scientificName,
-    );
-    revalidateSighting(sightingId);
-    return { success: `Modelo listo: ${result.label}` };
-  } catch (error) {
-    return {
-      error:
-        error instanceof Error
-          ? error.message
-          : "No se pudo adjuntar el modelo.",
     };
   }
 }

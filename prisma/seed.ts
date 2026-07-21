@@ -63,8 +63,6 @@ const PLACEHOLDER_FISH: SeedFish[] = [
     photoThumbUrl:
       "https://images.unsplash.com/photo-1573314229938-9e9a5df033a9?w=400&q=80",
     sightedAt: new Date("2025-06-12"),
-    model3dUrl: "/models/curated/fish-yellow.glb",
-    model3dSource: "curated_yellow",
   },
   {
     scientificName: "Chaetodon auriga",
@@ -81,8 +79,6 @@ const PLACEHOLDER_FISH: SeedFish[] = [
     photoThumbUrl:
       "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&q=80",
     sightedAt: new Date("2025-06-14"),
-    model3dUrl: "/models/curated/fish-pink.glb",
-    model3dSource: "curated_pink",
   },
   // Misma playa con varios peces → sí spiderfy
   {
@@ -100,8 +96,6 @@ const PLACEHOLDER_FISH: SeedFish[] = [
     photoThumbUrl:
       "https://images.unsplash.com/photo-1682687220063-4742bd7fd538?w=400&q=80",
     sightedAt: new Date("2025-06-18"),
-    model3dUrl: "/models/curated/fish-teal.glb",
-    model3dSource: "curated_teal",
   },
   {
     scientificName: "Pomacanthus imperator",
@@ -118,8 +112,6 @@ const PLACEHOLDER_FISH: SeedFish[] = [
     photoThumbUrl:
       "https://images.unsplash.com/photo-1544552866-d3ed42536cfd?w=400&q=80",
     sightedAt: new Date("2025-06-20"),
-    model3dUrl: "/models/curated/fish-teal.glb",
-    model3dSource: "curated_teal",
   },
   {
     scientificName: "Muraena helena",
@@ -152,8 +144,6 @@ const PLACEHOLDER_FISH: SeedFish[] = [
     photoThumbUrl:
       "https://images.unsplash.com/photo-1573551701016-d173344231b0?w=400&q=80",
     sightedAt: new Date("2025-08-03"),
-    model3dUrl: "/models/curated/fish-orange.glb",
-    model3dSource: "curated_orange",
   },
   {
     scientificName: "Pterois volitans",
@@ -170,8 +160,6 @@ const PLACEHOLDER_FISH: SeedFish[] = [
     photoThumbUrl:
       "https://images.unsplash.com/photo-1721982318707-14939452a32e?w=400&q=80",
     sightedAt: null,
-    model3dUrl: "/models/curated/fish-violet.glb",
-    model3dSource: "curated_violet",
   },
   {
     scientificName: "Acanthurus leucosternon",
@@ -188,8 +176,6 @@ const PLACEHOLDER_FISH: SeedFish[] = [
     photoThumbUrl:
       "https://images.unsplash.com/photo-1535591273668-578e31182c4f?w=400&q=80",
     sightedAt: new Date("2025-09-01"),
-    model3dUrl: "/models/curated/fish-blue.glb",
-    model3dSource: "curated_blue",
   },
   {
     scientificName: "Balistoides conspicillum",
@@ -206,8 +192,6 @@ const PLACEHOLDER_FISH: SeedFish[] = [
     photoThumbUrl:
       "https://images.unsplash.com/photo-1582967788606-a171f1080aae?w=400&q=80",
     sightedAt: new Date("2025-08-05"),
-    model3dUrl: "/models/curated/fish-orange.glb",
-    model3dSource: "curated_orange",
   },
   {
     scientificName: "Hippocampus kuda",

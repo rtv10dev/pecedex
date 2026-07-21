@@ -6,8 +6,8 @@ import { Header } from "@/components/layout/Header";
 import { FishHero } from "@/components/fish/FishHero";
 import { Model3dAdminPanel } from "@/components/admin/Model3dAdminPanel";
 import { DeleteSightingButton } from "@/components/admin/DeleteSightingButton";
+import { EditGalleryThumbPanel } from "@/components/admin/EditGalleryThumbPanel";
 import { getAdminSession } from "@/lib/auth/session";
-import { findCuratedModel } from "@/lib/model3d/catalog";
 import { prisma } from "@/lib/db";
 import { APP_NAME } from "@/lib/constants";
 
@@ -74,9 +74,6 @@ export default async function FishDetailPage({
   }
 
   const admin = await getAdminSession();
-  const hasCuratedMatch = Boolean(
-    findCuratedModel(sighting.species.scientificName),
-  );
   const dateLabel = sighting.sightedAt ?? sighting.registeredAt;
 
   return (
@@ -92,18 +89,19 @@ export default async function FishDetailPage({
           {backLabel}
         </Link>
 
-        <div className="rounded-3xl border-2 border-white/80 bg-shell shadow-xl shadow-anemone/20">
-          <div className="rainbow-border h-1.5 rounded-t-[calc(1.5rem-2px)]" />
+        <div className="overflow-hidden rounded-3xl border-2 border-white/80 bg-shell shadow-xl shadow-anemone/20">
+          <div className="rainbow-border h-1.5" aria-hidden />
 
           {/*
-            Sin overflow-hidden aquí: en Safari iOS el WebGL dentro de
-            overflow+border-radius queda en blanco.
+            El overflow-hidden de la card recorta la franja. El canvas 3D
+            va en un stacking context propio para reducir fallos en Safari.
           */}
-          <div className="relative aspect-square [transform:translate3d(0,0,0)] [-webkit-transform:translate3d(0,0,0)]">
+          <div className="relative aspect-square [transform:translate3d(0,0,0)] [-webkit-transform:translate3d(0,0,0)] [isolation:isolate]">
             <FishHero
               displayMode={sighting.displayMode}
               model3dUrl={sighting.model3dUrl}
               model3dStatus={sighting.model3dStatus}
+              model3dSource={sighting.model3dSource}
               photoUrl={sighting.photoUrl}
               alt={sighting.species.commonName}
             />
@@ -117,7 +115,7 @@ export default async function FishDetailPage({
             </div>
           </div>
 
-          <div className="space-y-3 rounded-b-[calc(1.5rem-2px)] bg-gradient-to-b from-foam-white to-shell p-5">
+          <div className="space-y-3 bg-gradient-to-b from-foam-white to-shell p-5">
             <InfoRow
               icon={<MapPin className="h-4 w-4 text-tang" />}
               label="Ubicación"
@@ -156,7 +154,6 @@ export default async function FishDetailPage({
               sightingId={sighting.id}
               model3dStatus={sighting.model3dStatus}
               model3dSource={sighting.model3dSource}
-              hasCuratedMatch={hasCuratedMatch}
               scientificName={sighting.species.scientificName}
               commonName={sighting.species.commonName}
             />
@@ -164,10 +161,20 @@ export default async function FishDetailPage({
               <p className="mb-3 text-xs font-bold uppercase tracking-wide text-coral">
                 Zona admin
               </p>
-              <DeleteSightingButton
-                sightingId={sighting.id}
-                commonName={sighting.species.commonName}
-              />
+              <div className="space-y-3">
+                <EditGalleryThumbPanel
+                  kind="sighting"
+                  id={sighting.id}
+                  photoUrl={sighting.photoUrl}
+                  previewTitle={sighting.species.commonName}
+                  previewSubtitle={sighting.species.scientificName}
+                  previewFooter={sighting.location.label}
+                />
+                <DeleteSightingButton
+                  sightingId={sighting.id}
+                  commonName={sighting.species.commonName}
+                />
+              </div>
             </section>
           </>
         ) : null}

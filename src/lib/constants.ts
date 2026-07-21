@@ -2,6 +2,8 @@ export const APP_NAME = "Pecedex";
 export const OWNERS = "Aurora y Rafa";
 export const REEF_TITLE = "Arrecife de Aurora y Rafa";
 export const FOOTER_CREDIT = "Pecedex · Aurora & Rafa";
+export const APP_DESCRIPTION =
+  "Bitácora de fauna marina de Aurora y Rafa. Galería tropical, mapa interactivo y modelos 3D.";
 
 export const NAV_ITEMS = [
   { href: "/", label: "Galería", icon: "fish" as const },

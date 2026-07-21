@@ -1,12 +1,11 @@
 import type { MetadataRoute } from "next";
-import { APP_NAME } from "@/lib/constants";
+import { APP_DESCRIPTION, APP_NAME } from "@/lib/constants";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: APP_NAME,
     short_name: APP_NAME,
-    description:
-      "Tu bitácora personal de peces avistados. Galería, mapa y modelos 3D.",
+    description: APP_DESCRIPTION,
     start_url: "/",
     scope: "/",
     display: "standalone",

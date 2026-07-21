@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Outfit } from "next/font/google";
 import { Providers } from "@/components/providers/Providers";
-import { APP_NAME } from "@/lib/constants";
+import { APP_DESCRIPTION, APP_NAME } from "@/lib/constants";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -14,15 +14,12 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
-const description =
-  "Bitácora personal de fauna marina avistada. Galería tropical, mapa interactivo y modelos 3D.";
-
 export const metadata: Metadata = {
   title: {
     default: APP_NAME,
     template: `%s · ${APP_NAME}`,
   },
-  description,
+  description: APP_DESCRIPTION,
   applicationName: APP_NAME,
   keywords: [
     "peces",
@@ -48,12 +45,12 @@ export const metadata: Metadata = {
     locale: "es_ES",
     siteName: APP_NAME,
     title: APP_NAME,
-    description,
+    description: APP_DESCRIPTION,
   },
   twitter: {
     card: "summary",
     title: APP_NAME,
-    description,
+    description: APP_DESCRIPTION,
   },
   icons: {
     icon: [

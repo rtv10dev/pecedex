@@ -15,6 +15,13 @@ const nextConfig: NextConfig = {
     "better-sqlite3",
     "pg",
   ],
+  // sharp 0.35 enlaza libvips-cpp.so de forma nativa y el tracing no lo copia:
+  // sin esto, en Vercel falla con "Could not load the sharp module (linux-x64)".
+  outputFileTracingIncludes: {
+    "/admin/**": ["./node_modules/@img/sharp-libvips-linux-x64/lib/**/*"],
+    "/pez/*": ["./node_modules/@img/sharp-libvips-linux-x64/lib/**/*"],
+    "/recuerdo/*": ["./node_modules/@img/sharp-libvips-linux-x64/lib/**/*"],
+  },
   images: {
     remotePatterns: [
       {
